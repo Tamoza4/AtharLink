@@ -1,0 +1,939 @@
+/* Tamoza UI Standard - Verified: 8pt Logic, Premium Glassmorphism, Centered Layout, Indigo Brand DNA, SF Pro & Cairo Typography, Theme Toggle Active, Full Component Set. */
+
+/* ==========================================================================
+   1. Typography & CSS Variables (Tamoza Brand DNA)
+   ========================================================================== */
+@import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800&display=swap');
+
+:root {
+    /* 8pt Grid Constants */
+    --tamoza-spacing-8: 8px;
+    --tamoza-spacing-16: 16px;
+    --tamoza-spacing-24: 24px;
+    --tamoza-spacing-32: 32px;
+    --tamoza-spacing-48: 48px;
+    --tamoza-spacing-64: 64px;
+
+    /* Max Width */
+    --tamoza-container-max: 1200px;
+
+    /* Radii */
+    --tamoza-radius-sm: 12px;
+    --tamoza-radius-md: 16px;
+    --tamoza-radius-lg: 24px;
+
+    /* Brand DNA Colors */
+    --tamoza-indigo: #6366F1;
+    --tamoza-indigo-hover: #4F46E5;
+    --tamoza-indigo-active: #4338CA;
+    --tamoza-cyan: #22D3EE;
+    --tamoza-cta-gradient: linear-gradient(135deg, #6366F1, #22D3EE);
+
+    /* Functional Colors */
+    --tamoza-success: #10B981;
+    --tamoza-error: #EF4444;
+    --tamoza-warning: #F59E0B;
+
+    /* Shadows & Glows */
+    --tamoza-soft-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+    --tamoza-accent-glow: 0 4px 14px rgba(99, 102, 241, 0.25);
+    --tamoza-focus-ring: 0 0 0 3px rgba(99, 102, 241, 0.4);
+
+    /* Motion */
+    --tamoza-transition-global: 250ms cubic-bezier(0.4, 0, 0.2, 1);
+    --tamoza-transition-micro: 150ms cubic-bezier(0.4, 0, 0.2, 1);
+
+    /* Font Family - Dual Language Support (Cairo for AR / SF Pro for EN) */
+    --tamoza-font-family: 'Cairo', system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+}
+
+[dir="ltr"] {
+    --tamoza-font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Helvetica Neue", "Segoe UI", Roboto, sans-serif;
+}
+
+[dir="rtl"] {
+    --tamoza-font-family: 'Cairo', system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+}
+
+/* ==========================================================================
+   2. Light & Dark Themes (Surfaces & Glass Strategy)
+   ========================================================================== */
+[data-bs-theme="light"], :root {
+    color-scheme: light;
+    --bs-body-bg: #F9F9F7;
+    --bs-body-color: #1E293B;
+    --tamoza-bg: #F9F9F7;
+    --tamoza-surface: rgba(255, 255, 255, 0.75);
+    --tamoza-surface-card: rgba(255, 255, 255, 0.85);
+    --tamoza-surface-hover: rgba(255, 255, 255, 0.95);
+    --tamoza-border: rgba(0, 0, 0, 0.06);
+    --tamoza-border-hover: rgba(99, 102, 241, 0.3);
+    --tamoza-text: #1E293B;
+    --tamoza-text-muted: #64748B;
+    --tamoza-footer-bg: #F1F1EE;
+    --tamoza-input-bg: rgba(255, 255, 255, 0.8);
+    --bs-card-bg: var(--tamoza-surface-card);
+    --bs-border-color: var(--tamoza-border);
+}
+
+[data-bs-theme="dark"] {
+    color-scheme: dark;
+    --bs-body-bg: #121212;
+    --bs-body-color: #F8FAFC;
+    --tamoza-bg: #121212;
+    --tamoza-surface: rgba(255, 255, 255, 0.05);
+    --tamoza-surface-card: rgba(255, 255, 255, 0.04);
+    --tamoza-surface-hover: rgba(255, 255, 255, 0.08);
+    --tamoza-border: rgba(255, 255, 255, 0.10);
+    --tamoza-border-hover: rgba(99, 102, 241, 0.4);
+    --tamoza-text: #F8FAFC;
+    --tamoza-text-muted: #94A3B8;
+    --tamoza-footer-bg: #0A0A0A;
+    --tamoza-input-bg: rgba(255, 255, 255, 0.06);
+    --bs-card-bg: var(--tamoza-surface-card);
+    --bs-border-color: var(--tamoza-border);
+}
+
+/* ==========================================================================
+   3. Global Layout & Typography
+   ========================================================================== */
+html {
+    scroll-behavior: smooth;
+}
+
+body {
+    font-family: var(--tamoza-font-family);
+    background-color: var(--tamoza-bg);
+    color: var(--tamoza-text);
+    line-height: 1.6;
+    letter-spacing: -0.01em;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    padding-top: 112px; /* Top clearance for Floating Header */
+    transition: background-color var(--tamoza-transition-global), color var(--tamoza-transition-global);
+}
+
+@media (max-width: 768px) {
+    body {
+        padding-top: 96px;
+    }
+}
+
+/* Centered Layout System */
+.tamoza-container {
+    width: 100%;
+    max-width: var(--tamoza-container-max);
+    margin-left: auto;
+    margin-right: auto;
+    padding-left: var(--tamoza-spacing-24);
+    padding-right: var(--tamoza-spacing-24);
+}
+
+@media (max-width: 768px) {
+    .tamoza-container {
+        padding-left: var(--tamoza-spacing-16);
+        padding-right: var(--tamoza-spacing-16);
+    }
+}
+
+main {
+    flex: 1;
+}
+
+/* Typography Hierarchy */
+h1, .h1 {
+    font-size: 40px;
+    font-weight: 700;
+    line-height: 1.3;
+    letter-spacing: -0.02em;
+}
+
+h2, .h2 {
+    font-size: 32px;
+    font-weight: 700;
+    line-height: 1.4;
+    letter-spacing: -0.02em;
+}
+
+h3, .h3 {
+    font-size: 24px;
+    font-weight: 600;
+    line-height: 1.4;
+    letter-spacing: -0.01em;
+}
+
+h4, .h4 {
+    font-size: 20px;
+    font-weight: 600;
+}
+
+h5, .h5 {
+    font-size: 16px;
+    font-weight: 600;
+}
+
+/* ==========================================================================
+   4. Floating Header (Uniform Safe Margins & Safe Float Rule)
+   ========================================================================== */
+.tamoza-floating-header {
+    position: fixed;
+    top: var(--tamoza-spacing-24);
+    left: 50%;
+    transform: translateX(-50%);
+    width: calc(100% - 48px);
+    max-width: var(--tamoza-container-max);
+    height: 72px;
+    z-index: 1000;
+    border-radius: var(--tamoza-radius-md);
+    background: var(--tamoza-surface);
+    backdrop-filter: blur(10px) saturate(140%);
+    -webkit-backdrop-filter: blur(10px) saturate(140%);
+    border: 1px solid var(--tamoza-border);
+    box-shadow: var(--tamoza-soft-shadow);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 var(--tamoza-spacing-24);
+    transition: var(--tamoza-transition-global);
+}
+
+@media (max-width: 768px) {
+    .tamoza-floating-header {
+        top: var(--tamoza-spacing-16);
+        width: calc(100% - 32px);
+        height: 64px;
+        padding: 0 var(--tamoza-spacing-16);
+    }
+}
+
+.tamoza-header-nav {
+    display: flex;
+    align-items: center;
+    gap: var(--tamoza-spacing-8);
+}
+
+.tamoza-nav-link {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--tamoza-spacing-8);
+    padding: var(--tamoza-spacing-8) var(--tamoza-spacing-16);
+    border-radius: var(--tamoza-radius-sm);
+    color: var(--tamoza-text-muted);
+    font-weight: 500;
+    font-size: 15px;
+    text-decoration: none;
+    transition: var(--tamoza-transition-micro);
+}
+
+.tamoza-nav-link:hover {
+    color: var(--tamoza-indigo);
+    background: var(--tamoza-surface-hover);
+}
+
+.tamoza-nav-link.active {
+    color: var(--tamoza-indigo);
+    background: rgba(99, 102, 241, 0.1);
+    font-weight: 600;
+}
+
+/* Header Brand */
+.tamoza-brand {
+    display: flex;
+    align-items: center;
+    gap: var(--tamoza-spacing-8);
+    text-decoration: none;
+    font-size: 20px;
+    font-weight: 700;
+    color: var(--tamoza-text);
+}
+
+.tamoza-brand-badge {
+    font-size: 11px;
+    font-weight: 600;
+    padding: 2px 8px;
+    border-radius: 999px;
+    background: rgba(99, 102, 241, 0.12);
+    color: var(--tamoza-indigo);
+}
+
+/* Header Action Controls */
+.tamoza-header-controls {
+    display: flex;
+    align-items: center;
+    gap: var(--tamoza-spacing-8);
+}
+
+.tamoza-header-controls .btn-tamoza-subtle {
+    height: 38px;
+    padding: 0 14px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 13.5px;
+    font-weight: 500;
+    line-height: 1;
+    border-radius: var(--tamoza-radius-sm);
+    background: var(--tamoza-surface);
+    border: 1px solid var(--tamoza-border);
+    color: var(--tamoza-text);
+    box-shadow: none;
+    transition: all var(--tamoza-transition-micro);
+}
+
+.tamoza-header-controls .btn-tamoza-subtle:hover {
+    background: var(--tamoza-surface-hover);
+    border-color: var(--tamoza-border-hover);
+    color: var(--tamoza-indigo);
+    transform: translateY(-1px);
+}
+
+/* Theme Toggle Button (Pixel-perfect harmony with adjacent pills) */
+.tamoza-theme-toggle {
+    width: 38px !important;
+    min-width: 38px !important;
+    height: 38px !important;
+    padding: 0 !important;
+    border-radius: var(--tamoza-radius-sm) !important;
+    border: 1px solid var(--tamoza-border) !important;
+    background: var(--tamoza-surface) !important;
+    color: var(--tamoza-text) !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    cursor: pointer;
+    box-shadow: none !important;
+    transition: all var(--tamoza-transition-micro);
+}
+
+.tamoza-theme-toggle:hover {
+    background: var(--tamoza-surface-hover) !important;
+    border-color: var(--tamoza-indigo) !important;
+    color: var(--tamoza-indigo) !important;
+    transform: translateY(-1px);
+}
+
+.tamoza-theme-icon {
+    width: 17px;
+    height: 17px;
+    display: block;
+    stroke: currentColor;
+    transition: transform var(--tamoza-transition-micro), stroke var(--tamoza-transition-micro);
+}
+
+.tamoza-theme-toggle:hover .tamoza-theme-icon {
+    transform: rotate(15deg);
+}
+
+/* Vector Icon System (Lucide / Feather Standard) */
+.tamoza-icon {
+    display: inline-block;
+    vertical-align: -0.15em;
+    stroke: currentColor;
+    flex-shrink: 0;
+    transition: transform var(--tamoza-transition-micro), stroke var(--tamoza-transition-micro);
+}
+
+.tamoza-icon-lg {
+    width: 22px;
+    height: 22px;
+}
+
+.tamoza-icon-sm {
+    width: 14px;
+    height: 14px;
+}
+
+/* ==========================================================================
+   5. Buttons (Brand DNA Implementation)
+   ========================================================================== */
+/* Primary CTA with Gradient */
+.btn-tamoza-primary {
+    background: var(--tamoza-cta-gradient);
+    color: #FFFFFF !important;
+    border: none;
+    border-radius: var(--tamoza-radius-md);
+    padding: 10px var(--tamoza-spacing-24);
+    font-weight: 600;
+    font-size: 15px;
+    box-shadow: var(--tamoza-accent-glow);
+    transition: transform var(--tamoza-transition-micro), box-shadow var(--tamoza-transition-micro);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--tamoza-spacing-8);
+    cursor: pointer;
+    text-decoration: none;
+}
+
+.btn-tamoza-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(99, 102, 241, 0.4);
+    color: #FFFFFF !important;
+}
+
+.btn-tamoza-primary:active {
+    transform: translateY(0);
+}
+
+/* Secondary Button */
+.btn-tamoza-secondary {
+    background: transparent;
+    border: 1px solid rgba(99, 102, 241, 0.3);
+    color: var(--tamoza-indigo) !important;
+    border-radius: var(--tamoza-radius-md);
+    padding: 10px var(--tamoza-spacing-24);
+    font-weight: 500;
+    font-size: 15px;
+    transition: var(--tamoza-transition-micro);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--tamoza-spacing-8);
+    cursor: pointer;
+    text-decoration: none;
+}
+
+[data-bs-theme="dark"] .btn-tamoza-secondary {
+    color: #A5B4FC !important;
+}
+
+.btn-tamoza-secondary:hover {
+    background: rgba(99, 102, 241, 0.1);
+    border-color: var(--tamoza-indigo);
+}
+
+/* Subtle Action Button */
+.btn-tamoza-subtle {
+    background: var(--tamoza-surface);
+    border: 1px solid var(--tamoza-border);
+    color: var(--tamoza-text);
+    border-radius: var(--tamoza-radius-sm);
+    padding: 6px 12px;
+    font-size: 14px;
+    transition: var(--tamoza-transition-micro);
+    cursor: pointer;
+}
+
+.btn-tamoza-subtle:hover {
+    background: var(--tamoza-surface-hover);
+    border-color: var(--tamoza-border-hover);
+    color: var(--tamoza-indigo);
+}
+
+/* Segmented Control / Period Filter Pills (Eliminates button overlapping with 8pt spacing and unified height) */
+.tamoza-segmented-group {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--tamoza-spacing-8); /* Strict 8pt gap preventing overlapping */
+    padding: 6px;
+    background: var(--tamoza-surface);
+    backdrop-filter: blur(12px) saturate(140%);
+    -webkit-backdrop-filter: blur(12px) saturate(140%);
+    border: 1px solid var(--tamoza-border);
+    border-radius: var(--tamoza-radius-lg); /* 24px pill */
+    box-shadow: var(--tamoza-soft-shadow);
+}
+
+.tamoza-segmented-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 7px 16px;
+    font-size: 13.5px;
+    font-weight: 500;
+    line-height: 1.3;
+    border-radius: var(--tamoza-radius-sm); /* 12px smooth corners */
+    text-decoration: none;
+    white-space: nowrap;
+    color: var(--tamoza-text-muted);
+    background: transparent;
+    border: 1px solid transparent;
+    transition: all var(--tamoza-transition-micro);
+    cursor: pointer;
+}
+
+.tamoza-segmented-btn:hover {
+    color: var(--tamoza-text);
+    background: var(--tamoza-surface-hover);
+    border-color: var(--tamoza-border);
+    transform: translateY(-1px);
+}
+
+.tamoza-segmented-btn.active {
+    background: var(--tamoza-cta-gradient); /* Brand DNA: Indigo to Cyan gradient */
+    color: #FFFFFF !important;
+    font-weight: 600;
+    border: 1px solid transparent;
+    box-shadow: 0 4px 14px rgba(99, 102, 241, 0.35);
+}
+
+.tamoza-segmented-btn.active:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 6px 18px rgba(99, 102, 241, 0.45);
+    color: #FFFFFF !important;
+}
+
+@media (max-width: 576px) {
+    .tamoza-segmented-group {
+        width: 100%;
+        overflow-x: auto;
+        justify-content: flex-start;
+        padding: 4px;
+        gap: 4px;
+    }
+    .tamoza-segmented-btn {
+        padding: 6px 12px;
+        font-size: 12.5px;
+    }
+}
+
+/* ==========================================================================
+   6. Cards & Glassmorphism Surfaces (8pt + 16/24px Radii)
+   ========================================================================== */
+.tamoza-card {
+    background: var(--tamoza-surface-card);
+    backdrop-filter: blur(10px) saturate(140%);
+    -webkit-backdrop-filter: blur(10px) saturate(140%);
+    border: 1px solid var(--tamoza-border);
+    border-radius: var(--tamoza-radius-lg); /* 24px */
+    box-shadow: var(--tamoza-soft-shadow);
+    padding: var(--tamoza-spacing-24);
+    transition: transform var(--tamoza-transition-global), box-shadow var(--tamoza-transition-global), border-color var(--tamoza-transition-global);
+}
+
+.tamoza-card:hover {
+    transform: translateY(-4px);
+    border-color: var(--tamoza-border-hover);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+}
+
+.tamoza-stat-card {
+    background: var(--tamoza-surface-card);
+    backdrop-filter: blur(10px) saturate(140%);
+    -webkit-backdrop-filter: blur(10px) saturate(140%);
+    border: 1px solid var(--tamoza-border);
+    border-radius: var(--tamoza-radius-md); /* 16px */
+    box-shadow: var(--tamoza-soft-shadow);
+    padding: var(--tamoza-spacing-24);
+    transition: transform var(--tamoza-transition-global), border-color var(--tamoza-transition-global);
+    height: 100%;
+}
+
+.tamoza-stat-card:hover {
+    transform: translateY(-4px);
+    border-color: var(--tamoza-border-hover);
+}
+
+.tamoza-stat-icon {
+    width: 48px;
+    height: 48px;
+    border-radius: var(--tamoza-radius-sm);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 22px;
+}
+
+/* ==========================================================================
+   7. Form Inputs & Controls
+   ========================================================================== */
+.tamoza-input, .form-control, .form-select {
+    background: var(--tamoza-input-bg) !important;
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    border: 1px solid var(--tamoza-border) !important;
+    border-radius: var(--tamoza-radius-sm); /* 12px */
+    color: var(--tamoza-text) !important;
+    padding: 10px 16px;
+    font-size: 15px;
+    transition: border-color var(--tamoza-transition-micro), box-shadow var(--tamoza-transition-micro);
+}
+
+.tamoza-input:focus, .form-control:focus, .form-select:focus {
+    border-color: var(--tamoza-indigo) !important;
+    box-shadow: var(--tamoza-focus-ring) !important;
+    outline: none;
+}
+
+/* Dedicated Tamoza Search Bar Component (Seamless unified input with 0 border overlap) */
+.tamoza-search-wrapper {
+    position: relative;
+    display: flex;
+    align-items: center;
+    background: var(--tamoza-input-bg);
+    border: 1px solid var(--tamoza-border);
+    border-radius: var(--tamoza-radius-sm); /* 12px */
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    transition: border-color var(--tamoza-transition-micro), box-shadow var(--tamoza-transition-micro);
+    width: 100%;
+}
+
+.tamoza-search-wrapper:focus-within {
+    border-color: var(--tamoza-indigo);
+    box-shadow: var(--tamoza-focus-ring);
+}
+
+.tamoza-search-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding-inline-start: 14px;
+    padding-inline-end: 8px;
+    color: var(--tamoza-text-muted);
+    font-size: 15px;
+    user-select: none;
+    pointer-events: none;
+}
+
+.tamoza-search-input {
+    width: 100%;
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+    outline: none !important;
+    color: var(--tamoza-text) !important;
+    padding: 10px 14px 10px 0;
+    font-size: 15px;
+}
+
+[dir="rtl"] .tamoza-search-input {
+    padding: 10px 0 10px 14px;
+}
+
+.tamoza-search-input::placeholder {
+    color: var(--tamoza-text-muted);
+    opacity: 0.8;
+}
+
+/* Input Groups & Addons */
+.input-group-text {
+    background: var(--tamoza-surface);
+    border: 1px solid var(--tamoza-border);
+    color: var(--tamoza-text-muted);
+    border-radius: var(--tamoza-radius-sm);
+}
+
+.input-group-text.bg-transparent {
+    background: transparent !important;
+}
+
+.input-group-text.border-0 {
+    border: none !important;
+}
+
+/* Clean Seamless Input Group Radii */
+.input-group > :not(:first-child):not(.dropdown-menu) {
+    border-top-left-radius: 0 !important;
+    border-bottom-left-radius: 0 !important;
+}
+
+[dir="rtl"] .input-group > :not(:first-child):not(.dropdown-menu) {
+    border-top-left-radius: var(--tamoza-radius-sm) !important;
+    border-bottom-left-radius: var(--tamoza-radius-sm) !important;
+    border-top-right-radius: 0 !important;
+    border-bottom-right-radius: 0 !important;
+}
+
+.input-group > :not(:last-child):not(.dropdown-toggle) {
+    border-top-right-radius: 0 !important;
+    border-bottom-right-radius: 0 !important;
+}
+
+[dir="rtl"] .input-group > :not(:last-child):not(.dropdown-toggle) {
+    border-top-right-radius: var(--tamoza-radius-sm) !important;
+    border-bottom-right-radius: var(--tamoza-radius-sm) !important;
+    border-top-left-radius: 0 !important;
+    border-bottom-left-radius: 0 !important;
+}
+
+/* Select & Option Styling for Dark & Light Themes */
+select.form-select,
+select.tamoza-input,
+.form-select {
+    color-scheme: dark;
+}
+
+[data-bs-theme="light"] select.form-select,
+[data-bs-theme="light"] select.tamoza-input,
+[data-bs-theme="light"] .form-select {
+    color-scheme: light;
+}
+
+select.form-select option,
+select.tamoza-input option,
+.tamoza-input option,
+option {
+    background-color: #1A1F2C !important;
+    color: #F8FAFC !important;
+    padding: 10px 14px;
+}
+
+[data-bs-theme="light"] select.form-select option,
+[data-bs-theme="light"] select.tamoza-input option,
+[data-bs-theme="light"] option {
+    background-color: #FFFFFF !important;
+    color: #0F172A !important;
+}
+
+/* ==========================================================================
+   8. Tables & Badges
+   ========================================================================== */
+.tamoza-table-container {
+    background: var(--tamoza-surface-card);
+    border: 1px solid var(--tamoza-border);
+    border-radius: var(--tamoza-radius-md); /* 16px */
+    overflow: visible !important;
+    min-height: 240px;
+}
+
+.tamoza-table-container .table-responsive {
+    overflow: visible !important;
+}
+
+@media (max-width: 991.98px) {
+    .tamoza-table-container .table-responsive {
+        overflow-x: auto !important;
+        overflow-y: visible !important;
+        min-height: 320px;
+        padding-bottom: 140px;
+    }
+}
+
+.table td {
+    position: relative;
+}
+
+/* Table Dropdown Menu Positioning & Appearance */
+.table .dropdown {
+    position: relative !important;
+    display: inline-block !important;
+}
+
+.table .dropdown-menu {
+    position: absolute !important;
+    top: 100% !important;
+    right: 0 !important;
+    left: auto !important;
+    margin-top: 6px !important;
+}
+
+[dir="rtl"] .table .dropdown-menu {
+    right: auto !important;
+    left: 0 !important;
+}
+
+.dropdown-menu {
+    z-index: 1060 !important;
+    min-width: 210px;
+    background-color: #181B26 !important;
+    background: #181B26 !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    border: 1px solid rgba(255, 255, 255, 0.16) !important;
+    border-radius: var(--tamoza-radius-md) !important;
+    box-shadow: 0 18px 45px rgba(0, 0, 0, 0.7) !important;
+    padding: 8px !important;
+}
+
+[data-bs-theme="light"] .table .dropdown-menu,
+[data-bs-theme="light"] .dropdown-menu {
+    background-color: #FFFFFF !important;
+    background: #FFFFFF !important;
+    border: 1px solid #E2E8F0 !important;
+    box-shadow: 0 18px 45px rgba(0, 0, 0, 0.15) !important;
+}
+
+.dropdown-item {
+    border-radius: var(--tamoza-radius-sm);
+    padding: 8px 12px;
+    font-size: 14px;
+    transition: background-color var(--tamoza-transition-micro), color var(--tamoza-transition-micro);
+}
+
+.dropdown-item:hover,
+.dropdown-item:focus {
+    background-color: rgba(99, 102, 241, 0.15) !important;
+    color: var(--tamoza-indigo) !important;
+}
+
+[dir="rtl"] .table .dropdown-menu,
+[dir="rtl"] .table .dropdown-menu-end {
+    left: 0 !important;
+    right: auto !important;
+    transform: none !important;
+}
+
+[dir="ltr"] .table .dropdown-menu,
+[dir="ltr"] .table .dropdown-menu-end {
+    right: 0 !important;
+    left: auto !important;
+    transform: none !important;
+}
+
+.table {
+    margin-bottom: 0;
+    --bs-table-bg: transparent;
+    --bs-table-color: var(--tamoza-text);
+}
+
+.table th {
+    padding: var(--tamoza-spacing-16);
+    font-weight: 600;
+    font-size: 13px;
+    text-transform: uppercase;
+    color: var(--tamoza-text-muted);
+    border-bottom: 1px solid var(--tamoza-border);
+    background: rgba(0, 0, 0, 0.02);
+}
+
+[data-bs-theme="dark"] .table th {
+    background: rgba(255, 255, 255, 0.02);
+}
+
+.table td {
+    padding: var(--tamoza-spacing-16);
+    vertical-align: middle;
+    border-bottom: 1px solid var(--tamoza-border);
+}
+
+.tamoza-badge {
+    padding: 4px 10px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 600;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.badge-indigo { background: rgba(99, 102, 241, 0.15); color: #6366F1; }
+.badge-cyan   { background: rgba(34, 211, 238, 0.15); color: #06B6D4; }
+.badge-success { background: rgba(16, 185, 129, 0.15); color: #10B981; }
+.badge-warning { background: rgba(245, 158, 11, 0.15); color: #F59E0B; }
+.badge-danger  { background: rgba(239, 68, 68, 0.15); color: #EF4444; }
+.badge-muted   { background: rgba(148, 163, 184, 0.15); color: #94A3B8; }
+
+.pulse-dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: currentColor;
+    display: inline-block;
+    animation: tamozaPulse 1.6s infinite ease-in-out;
+}
+
+@keyframes tamozaPulse {
+    0% { transform: scale(0.85); opacity: 0.6; }
+    50% { transform: scale(1.25); opacity: 1; }
+    100% { transform: scale(0.85); opacity: 0.6; }
+}
+
+/* ==========================================================================
+   9. Modals (Glassmorphism & 24px Radius)
+   ========================================================================== */
+.modal-content {
+    background: var(--tamoza-surface-card) !important;
+    backdrop-filter: blur(16px) saturate(140%) !important;
+    -webkit-backdrop-filter: blur(16px) saturate(140%) !important;
+    border: 1px solid var(--tamoza-border) !important;
+    border-radius: var(--tamoza-radius-lg) !important; /* 24px */
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3) !important;
+    color: var(--tamoza-text);
+}
+
+.modal-header {
+    border-bottom: 1px solid var(--tamoza-border);
+    padding: var(--tamoza-spacing-24);
+}
+
+.modal-body {
+    padding: var(--tamoza-spacing-24);
+}
+
+.modal-footer {
+    border-top: 1px solid var(--tamoza-border);
+    padding: var(--tamoza-spacing-16) var(--tamoza-spacing-24);
+}
+
+/* ==========================================================================
+   10. Structured Footer (Split Layout)
+   ========================================================================== */
+.tamoza-footer {
+    margin-top: auto;
+    background: var(--tamoza-footer-bg);
+    border-top: 1px solid var(--tamoza-border);
+    padding: var(--tamoza-spacing-24) 0;
+    transition: var(--tamoza-transition-global);
+}
+
+.tamoza-footer-inner {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
+    max-width: var(--tamoza-container-max);
+    margin: 0 auto;
+    padding: 0 var(--tamoza-spacing-24);
+}
+
+@media (max-width: 768px) {
+    .tamoza-footer-inner {
+        flex-direction: column;
+        gap: var(--tamoza-spacing-16);
+        text-align: center;
+        padding: 0 var(--tamoza-spacing-16);
+    }
+}
+
+.tamoza-footer-brand {
+    font-weight: 700;
+    font-size: 16px;
+    color: var(--tamoza-text);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.tamoza-footer-copy {
+    color: var(--tamoza-text-muted);
+    font-size: 14px;
+}
+
+.tamoza-footer-status {
+    display: flex;
+    align-items: center;
+    gap: var(--tamoza-spacing-8);
+    font-size: 13px;
+    color: var(--tamoza-text-muted);
+}
+
+/* ==========================================================================
+   QR Code Modal Presentation & Exact Centering
+   ========================================================================== */
+#qrModalCanvas {
+    display: flex !important;
+    justify-content: center !important;
+    align-items: center !important;
+    margin: 0 auto !important;
+    text-align: center !important;
+    width: 100% !important;
+}
+
+#qrModalCanvas canvas {
+    display: none !important;
+}
+
+#qrModalCanvas img {
+    display: block !important;
+    margin-left: auto !important;
+    margin-right: auto !important;
+    border-radius: 16px !important;
+    padding: 12px !important;
+    background: #ffffff !important;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35) !important;
+    max-width: 100% !important;
+    height: auto !important;
+}
+

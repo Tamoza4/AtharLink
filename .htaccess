@@ -1,0 +1,35 @@
+# AtharLink Apache Rewrite Rules
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    RewriteBase /
+
+    # Prevent directory listing
+    Options -Indexes
+
+    # Security: Deny access to sensitive files
+    <FilesMatch "\.(sqlite|lock|env|log|md|txt)$">
+        Require all denied
+    </FilesMatch>
+
+    # Block direct web access to storage and bin directories
+    RewriteRule ^(storage|bin)/ - [F,L]
+
+    # Allow direct access to existing files and directories
+    RewriteCond %{REQUEST_FILENAME} -f [OR]
+    RewriteCond %{REQUEST_FILENAME} -d
+    RewriteRule ^ - [L]
+
+    # Redirect short link URLs: /c/{slug} or /r/{slug} -> r.php?slug=$1
+    RewriteRule ^c/([a-zA-Z0-9_-]+)/?$ r.php?slug=$1 [L,QSA]
+    RewriteRule ^r/([a-zA-Z0-9_-]+)/?$ r.php?slug=$1 [L,QSA]
+
+    # RESTful API routing
+    RewriteRule ^api/v1/(.*)$ api/v1/index.php [L,QSA]
+    RewriteRule ^api/v1/?$ api/v1/index.php [L,QSA]
+
+    # Public embed script
+    RewriteRule ^embed\.js$ embed.js [L]
+
+    # Admin dashboard router
+    RewriteRule ^(.*)$ index.php [L,QSA]
+</IfModule>

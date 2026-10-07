@@ -1,0 +1,34 @@
+# AtharLink Git Ignore Rules
+# ---------------------------
+
+# Sensitive Runtime Storage Files
+/storage/*.sqlite
+/storage/*.sqlite-wal
+/storage/*.sqlite-shm
+/storage/*.sqlite-journal
+/storage/*.bak
+/storage/*.log
+/storage/installed.lock
+/storage/.secret_key
+/storage/.recovery_key
+
+# Keep the storage directory and its security rules
+!/storage/.htaccess
+!/storage/.gitkeep
+
+# Environment and Temporary Files
+.env
+*.tmp
+*.log
+
+# Operating System Files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# IDE & Editor Configurations
+.vscode/
+.idea/
+*.suo
+*.user
+*.swp
