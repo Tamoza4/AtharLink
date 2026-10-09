@@ -258,6 +258,8 @@ class I18n
                 'restore_btn'               => 'استعادة',
                 'restore_warning'           => 'تحذير: استعادة قاعدة البيانات ستستبدل البيانات الحالية بالكامل. هل تريد المتابعة؟',
                 'restore_hint'              => 'يتم التحقق تلقائياً من ترويسة SQLite 3 وخلو الملف من أي أكواد برمجية خبيثة.',
+                'restore_keep_admin_label'  => 'الاحتفاظ ببيانات تسجيل الدخول الحالية (مستحسن)',
+                'restore_keep_admin_hint'   => 'عند التحديد، ستتم استعادة جميع الروابط والإحصائيات من النسخة الاحتياطية مع الإبقاء على اسم المستخدم وكلمة المرور الحالية دون تغيير.',
 
                 // System Updates & Version Check
                 'updates_card_title'        => 'تحديثات النظام والإصدار',
@@ -752,6 +754,8 @@ class I18n
                 'restore_btn'               => 'Restore',
                 'restore_warning'           => 'Warning: Restoring a database file will completely overwrite existing data. Proceed?',
                 'restore_hint'              => 'Files are strictly verified for SQLite 3 signature and safe binary contents.',
+                'restore_keep_admin_label'  => 'Preserve current admin login credentials (Recommended)',
+                'restore_keep_admin_hint'   => 'When checked, all links and analytics from the backup will be restored while preserving your current username and password.',
 
                 // System Updates & Version Check
                 'updates_card_title'        => 'System Updates & Version',
