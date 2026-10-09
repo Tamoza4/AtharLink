@@ -97,6 +97,42 @@ class Updater
             } else {
                 $result['error'] = !empty($curlError) ? $curlError : "GitHub API response: HTTP {$httpCode}";
             }
+
+            // Fallback: Check tags endpoint if no update found via releases
+            if (!$result['has_update']) {
+                $tagsUrl = "https://api.github.com/repos/{$repo}/tags";
+                $chTags = curl_init();
+                curl_setopt_array($chTags, [
+                    CURLOPT_URL            => $tagsUrl,
+                    CURLOPT_RETURNTRANSFER => true,
+                    CURLOPT_TIMEOUT        => 5,
+                    CURLOPT_CONNECTTIMEOUT => 3,
+                    CURLOPT_USERAGENT      => 'AtharLink-Updater/' . $current,
+                    CURLOPT_HTTPHEADER     => [
+                        'Accept: application/vnd.github.v3+json',
+                        'User-Agent: AtharLink-Updater'
+                    ],
+                    CURLOPT_SSL_VERIFYPEER => true
+                ]);
+                $tagsRes = curl_exec($chTags);
+                $tagsCode = (int)curl_getinfo($chTags, CURLINFO_HTTP_CODE);
+                curl_close($chTags);
+
+                if ($tagsCode === 200 && is_string($tagsRes)) {
+                    $tagsList = json_decode($tagsRes, true);
+                    if (is_array($tagsList)) {
+                        foreach ($tagsList as $tagObj) {
+                            $tagName = ltrim((string)($tagObj['name'] ?? ''), 'vV');
+                            if ($tagName !== '' && version_compare($tagName, $result['latest'], '>')) {
+                                $result['latest'] = $tagName;
+                                $result['has_update'] = version_compare($tagName, $current, '>');
+                                $result['release_name'] = 'v' . $tagName;
+                                $result['release_url'] = "https://github.com/{$repo}/releases/tag/v{$tagName}";
+                            }
+                        }
+                    }
+                }
+            }
         } else {
             $result['error'] = 'cURL extension is required to check for online updates.';
         }
