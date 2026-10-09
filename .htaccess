@@ -6,15 +6,18 @@
     # Prevent directory listing
     Options -Indexes
 
+    # Suppress Server Signature
+    ServerSignature Off
+
     # Security: Deny access to sensitive files
-    <FilesMatch "\.(sqlite|lock|env|log|md|txt)$">
+    <FilesMatch "\.(sqlite|lock|env|log|md)$">
         Require all denied
     </FilesMatch>
 
     # Block direct web access to storage and bin directories
     RewriteRule ^(storage|bin)/ - [F,L]
 
-    # Allow direct access to existing files and directories
+    # Allow direct access to existing files and directories (.well-known, robots.txt, assets, etc.)
     RewriteCond %{REQUEST_FILENAME} -f [OR]
     RewriteCond %{REQUEST_FILENAME} -d
     RewriteRule ^ - [L]
@@ -32,4 +35,29 @@
 
     # Admin dashboard router
     RewriteRule ^(.*)$ index.php [L,QSA]
+</IfModule>
+
+# OWASP Recommended Security Headers
+<IfModule mod_headers.c>
+    # HTTP Strict Transport Security (HSTS)
+    Header always set Strict-Transport-Security "max-age=31536000; includeSubDomains; preload" env=HTTPS
+
+    # Content Security Policy (CSP)
+    Header always set Content-Security-Policy "default-src 'self' data: blob:; script-src 'self' 'unsafe-inline' 'unsafe-eval' blob:; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: blob: https:; connect-src 'self' https://api.github.com; object-src 'none'; base-uri 'self';"
+
+    # Anti-MIME Sniffing
+    Header always set X-Content-Type-Options "nosniff"
+
+    # Clickjacking Protection
+    Header always set X-Frame-Options "SAMEORIGIN"
+
+    # Referrer Policy
+    Header always set Referrer-Policy "strict-origin-when-cross-origin"
+
+    # Permissions Policy
+    Header always set Permissions-Policy "geolocation=(), microphone=(), camera=(), payment=()"
+
+    # Hide Server Software / PHP Fingerprint
+    Header unset X-Powered-By
+    Header always unset X-Powered-By
 </IfModule>

@@ -1,0 +1,4 @@
+User-agent: *
+Disallow: /storage/
+Disallow: /bin/
+Disallow: /api/

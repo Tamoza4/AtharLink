@@ -13,9 +13,30 @@ ini_set('log_errors', '1');
 // Set default timezone (can be overridden by system settings)
 date_default_timezone_set('UTC');
 
+// OWASP Security Headers (Defense-in-depth across all server environments)
+if (!headers_sent() && php_sapi_name() !== 'cli') {
+    @header_remove('X-Powered-By');
+    header('X-Content-Type-Options: nosniff');
+    header('X-Frame-Options: SAMEORIGIN');
+    header('Referrer-Policy: strict-origin-when-cross-origin');
+    header('Permissions-Policy: geolocation=(), microphone=(), camera=(), payment=()');
+
+    // Strict-Transport-Security (HSTS) over HTTPS
+    $isHttps = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off')
+        || (isset($_SERVER['SERVER_PORT']) && $_SERVER['SERVER_PORT'] == 443)
+        || (!empty($_SERVER['HTTP_X_FORWARDED_PROTO']) && $_SERVER['HTTP_X_FORWARDED_PROTO'] === 'https');
+
+    if ($isHttps) {
+        header('Strict-Transport-Security: max-age=31536000; includeSubDomains; preload');
+    }
+
+    // Content-Security-Policy (CSP)
+    header("Content-Security-Policy: default-src 'self' data: blob:; script-src 'self' 'unsafe-inline' 'unsafe-eval' blob:; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: blob: https:; connect-src 'self' https://api.github.com; object-src 'none'; base-uri 'self';");
+}
+
 // Application Constants
 define('APP_NAME', 'AtharLink');
-define('APP_VERSION', '1.0.5');
+define('APP_VERSION', '1.0.6');
 define('APP_ROOT', dirname(__DIR__));
 define('STORAGE_DIR', APP_ROOT . DIRECTORY_SEPARATOR . 'storage');
 define('DB_PATH', STORAGE_DIR . DIRECTORY_SEPARATOR . 'athar_database.sqlite');

@@ -1,0 +1,5 @@
+# AtharLink RFC 9116 Security Disclosure
+Contact: https://tamoza.net
+Preferred-Languages: ar, en
+Canonical: https://go.tamoza.net/.well-known/security.txt
+Policy: https://tamoza.net
