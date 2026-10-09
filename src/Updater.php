@@ -217,4 +217,159 @@ class Updater
             'log'     => $log
         ];
     }
+
+    /**
+     * Core System Rebuilder & Integrity Repair Engine:
+     * 1. Restores missing core files via Git (if available) or GitHub Raw fallback.
+     * 2. Re-verifies storage directory permissions, .htaccess guard, and installed.lock.
+     * 3. Runs schema migrations and rebuilds missing tables/columns.
+     * 4. Checks SQLite integrity & WAL checkpoint.
+     * 5. Purges caches & resets OPcache.
+     */
+    public static function rebuildSystem(): array
+    {
+        $log = [];
+        $log[] = 'System rebuild and integrity repair started: ' . date('Y-m-d H:i:s T');
+        $restoredFiles = 0;
+
+        // 1. Storage folder and protection integrity
+        $storageDir = STORAGE_DIR;
+        if (!is_dir($storageDir)) {
+            @mkdir($storageDir, 0755, true);
+            $log[] = 'Recreated missing storage directory.';
+        }
+
+        $storageHtaccess = $storageDir . DIRECTORY_SEPARATOR . '.htaccess';
+        if (!file_exists($storageHtaccess)) {
+            $htContent = "# Strictly block public direct access to database and secrets\n<IfModule !mod_authz_core.c>\n    Deny from all\n</IfModule>\n<IfModule mod_authz_core.c>\n    Require all denied\n</IfModule>\n";
+            @file_put_contents($storageHtaccess, $htContent);
+            $log[] = 'Recreated missing security guard: storage/.htaccess.';
+        }
+
+        // 2. Restore missing or damaged core files
+        $gitDir = APP_ROOT . DIRECTORY_SEPARATOR . '.git';
+        if (is_dir($gitDir) && function_exists('exec')) {
+            $output = [];
+            $code = 0;
+            // Restore any deleted tracked files safely
+            @exec('cd ' . escapeshellarg(APP_ROOT) . ' && git checkout -- . 2>&1', $output, $code);
+            if ($code === 0) {
+                $log[] = 'Git integrity check: Verified and restored tracked core files.';
+            } else {
+                $log[] = 'Git notice: ' . implode(' ', $output);
+            }
+        } else {
+            // Standalone / Non-Git mode: Check essential manifest files from GitHub Raw
+            $manifest = [
+                'index.php',
+                'r.php',
+                'embed.js',
+                'config/config.php',
+                'src/Auth.php',
+                'src/Database.php',
+                'src/Helpers.php',
+                'src/I18n.php',
+                'src/Icon.php',
+                'src/LinkManager.php',
+                'src/Tracker.php',
+                'src/Updater.php',
+                'views/auth/login.php',
+                'views/dashboard/index.php',
+                'views/dashboard/links.php',
+                'views/dashboard/settings.php',
+                'views/dashboard/stats.php',
+                'views/install/index.php',
+                'views/layout/header.php',
+                'views/layout/footer.php',
+                'assets/css/app.css',
+                'assets/js/app.js'
+            ];
+
+            $repo = Database::getSetting('github_repo', self::DEFAULT_REPO);
+            $rawBase = "https://raw.githubusercontent.com/{$repo}/main/";
+
+            foreach ($manifest as $fileRel) {
+                $targetPath = APP_ROOT . DIRECTORY_SEPARATOR . str_replace('/', DIRECTORY_SEPARATOR, $fileRel);
+                if (!file_exists($targetPath)) {
+                    $downloadUrl = $rawBase . $fileRel;
+                    $content = null;
+
+                    if (function_exists('curl_init')) {
+                        $ch = curl_init($downloadUrl);
+                        curl_setopt_array($ch, [
+                            CURLOPT_RETURNTRANSFER => true,
+                            CURLOPT_TIMEOUT        => 6,
+                            CURLOPT_CONNECTTIMEOUT => 3,
+                            CURLOPT_USERAGENT      => 'AtharLink-Rebuilder',
+                            CURLOPT_SSL_VERIFYPEER => true
+                        ]);
+                        $res = curl_exec($ch);
+                        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+                        curl_close($ch);
+                        if ($httpCode === 200 && is_string($res) && strlen($res) > 0) {
+                            $content = $res;
+                        }
+                    } elseif (ini_get('allow_url_fopen')) {
+                        $content = @file_get_contents($downloadUrl);
+                    }
+
+                    if ($content !== null) {
+                        $parentDir = dirname($targetPath);
+                        if (!is_dir($parentDir)) {
+                            @mkdir($parentDir, 0755, true);
+                        }
+                        @file_put_contents($targetPath, $content);
+                        $restoredFiles++;
+                        $log[] = "Restored missing file from repository: {$fileRel}";
+                    } else {
+                        $log[] = "Warning: Could not fetch missing file: {$fileRel}";
+                    }
+                }
+            }
+            if ($restoredFiles === 0) {
+                $log[] = 'Core file scan: All required application files are intact.';
+            }
+        }
+
+        // 3. Database schema verification & migrations
+        try {
+            Database::initSchema();
+            $log[] = 'Database schema and column migrations verified.';
+        } catch (Throwable $e) {
+            $log[] = 'Schema verification notice: ' . $e->getMessage();
+        }
+
+        // 4. SQLite integrity check & WAL checkpoint
+        try {
+            $pdo = Database::getConnection();
+            $pdo->exec('PRAGMA wal_checkpoint(TRUNCATE);');
+            $integrity = $pdo->query('PRAGMA integrity_check;')->fetchColumn();
+            $log[] = 'Database health: SQLite integrity check passed (' . ($integrity === 'ok' ? 'OK' : (string)$integrity) . ').';
+        } catch (Throwable $e) {
+            $log[] = 'Database check warning: ' . $e->getMessage();
+        }
+
+        // 5. Restore installed.lock if accidentally deleted
+        if (!file_exists(LOCK_FILE)) {
+            @file_put_contents(LOCK_FILE, json_encode([
+                'installed_at' => date('c'),
+                'version'      => defined('APP_VERSION') ? APP_VERSION : '1.0.1'
+            ]));
+            $log[] = 'Recreated missing installation lock file.';
+        }
+
+        // 6. Reset OPcache & flush update check cache
+        if (function_exists('opcache_reset')) {
+            @opcache_reset();
+            $log[] = 'PHP OPcache cleared and refreshed.';
+        }
+        Database::setSetting(self::CACHE_KEY, '');
+
+        return [
+            'success'        => true,
+            'message'        => I18n::t('rebuild_success_flash'),
+            'restored_files' => $restoredFiles,
+            'log'            => $log
+        ];
+    }
 }

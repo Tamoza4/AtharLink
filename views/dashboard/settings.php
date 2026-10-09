@@ -236,6 +236,12 @@ $updateInfo = Updater::check();
                         <span id="triggerUpdateIcon"><?= Icon::get('rocket', '', 15) ?></span>
                         <span id="triggerUpdateText"><?= I18n::t('update_now_btn') ?></span>
                     </button>
+
+                    <!-- Rebuild & Repair Button -->
+                    <button type="button" id="triggerRebuildBtn" class="btn btn-tamoza-secondary d-inline-flex align-items-center gap-2" title="<?= I18n::t('rebuild_repair_btn') ?>">
+                        <span id="triggerRebuildIcon"><?= Icon::get('tool', '', 14) ?></span>
+                        <span id="triggerRebuildText"><?= I18n::t('rebuild_repair_btn') ?></span>
+                    </button>
                 </div>
 
                 <span id="updateCheckedDateDisplay" class="text-secondary small">
@@ -341,6 +347,89 @@ $updateInfo = Updater::check();
             </div>
 
         </div>
+<!-- Modal: Rebuild & Repair Confirmation & Progress Modal -->
+<div class="modal fade" id="rebuildRepairModal" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content shadow border-0" style="background: #161A23 !important; border: 1px solid var(--tamoza-border); border-radius: var(--tamoza-radius-lg);">
+            
+            <!-- Step 1: Confirmation View -->
+            <div id="rebuildConfirmView">
+                <div class="modal-header border-0 pb-0">
+                    <h5 class="modal-title fw-bold d-flex align-items-center gap-2 text-white">
+                        <?= Icon::get('tool', 'text-indigo') ?>
+                        <span><?= I18n::t('rebuild_repair_confirm_title') ?></span>
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body py-4">
+                    <p class="text-white fw-semibold mb-3"><?= I18n::t('rebuild_repair_confirm_text') ?></p>
+                    <div class="p-3 rounded-4 mb-2 small" style="background: rgba(99, 102, 241, 0.05); border: 1px solid var(--tamoza-border);">
+                        <ul class="list-unstyled mb-0 d-flex flex-column gap-2 text-secondary">
+                            <li class="d-flex align-items-center gap-2">
+                                <span class="text-success"><?= Icon::get('check-circle', '', 14) ?></span>
+                                <span><?= I18n::t('rebuild_point_files') ?></span>
+                            </li>
+                            <li class="d-flex align-items-center gap-2">
+                                <span class="text-success"><?= Icon::get('check-circle', '', 14) ?></span>
+                                <span><?= I18n::t('rebuild_point_storage') ?></span>
+                            </li>
+                            <li class="d-flex align-items-center gap-2">
+                                <span class="text-success"><?= Icon::get('check-circle', '', 14) ?></span>
+                                <span><?= I18n::t('rebuild_point_db') ?></span>
+                            </li>
+                            <li class="d-flex align-items-center gap-2">
+                                <span class="text-success"><?= Icon::get('check-circle', '', 14) ?></span>
+                                <span><?= I18n::t('rebuild_point_cache') ?></span>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+                <div class="modal-footer border-0 pt-0">
+                    <button type="button" class="btn btn-tamoza-subtle btn-sm px-3" data-bs-dismiss="modal"><?= I18n::t('update_dismiss_btn') ?></button>
+                    <button type="button" class="btn btn-tamoza-primary btn-sm px-4 d-inline-flex align-items-center gap-2" id="startRebuildExecutionBtn">
+                        <?= Icon::get('tool', '', 14) ?>
+                        <span><?= I18n::t('rebuild_start_btn') ?></span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Step 2: Execution & Progress Bar View -->
+            <div id="rebuildProgressView" class="d-none">
+                <div class="modal-header border-0 pb-0">
+                    <h5 class="modal-title fw-bold d-flex align-items-center gap-2 text-white">
+                        <?= Icon::get('tool', 'text-indigo') ?>
+                        <span><?= I18n::t('rebuild_repair_btn') ?></span>
+                    </h5>
+                    <button type="button" class="btn-close" id="rebuildModalCloseBtn" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body py-4">
+                    <!-- Progress Bar Container -->
+                    <div class="progress mb-3" style="height: 10px; background: rgba(140, 150, 170, 0.15); border-radius: 999px;">
+                        <div id="rebuildProgressBar" class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar" style="width: 0%; background: #6366F1; transition: width 0.4s ease;"></div>
+                    </div>
+
+                    <!-- Live Status Line -->
+                    <div id="rebuildStepStatus" class="fw-semibold small text-primary mb-2 d-flex align-items-center gap-2">
+                        <span id="rebuildSpinner" class="spinner-border spinner-border-sm text-primary"></span>
+                        <span id="rebuildStepText"><?= I18n::t('rebuild_point_files') ?></span>
+                    </div>
+
+                    <!-- Collapsible Log Details -->
+                    <div id="rebuildLogWrapper" class="d-none mt-3">
+                        <div class="text-secondary small fw-semibold mb-1"><?= I18n::t('update_log_title') ?></div>
+                        <div id="rebuildLogBox" class="p-3 rounded-3 font-monospace text-start" dir="ltr" style="background: rgba(0, 0, 0, 0.45); border: 1px solid var(--tamoza-border); max-height: 140px; overflow-y: auto; font-size: 11.5px; color: #94A3B8; white-space: pre-wrap;"></div>
+                    </div>
+                </div>
+                <div class="modal-footer border-0 pt-0">
+                    <button type="button" class="btn btn-tamoza-subtle btn-sm px-3" id="rebuildCancelBtn" data-bs-dismiss="modal"><?= I18n::t('cancel_btn') ?></button>
+                    <button type="button" class="btn btn-tamoza-primary btn-sm px-3 d-none" id="rebuildReloadBtn" onclick="window.location.reload();">
+                        <?= Icon::get('refresh', '', 14) ?>
+                        <span><?= I18n::t('reload_platform_btn') ?></span>
+                    </button>
+                </div>
+            </div>
+
+        </div>
     </div>
 </div>
 
@@ -392,13 +481,20 @@ document.addEventListener('DOMContentLoaded', function () {
         rocketIconSmall: <?= json_encode(Icon::get('rocket', '', 15)) ?>,
         csrfToken: <?= json_encode(Helpers::csrfToken()) ?>,
         checkUrl: <?= json_encode(Helpers::baseUrl('index.php?action=check_updates')) ?>,
-        applyUrl: <?= json_encode(Helpers::baseUrl('index.php?action=apply_update')) ?>
+        applyUrl: <?= json_encode(Helpers::baseUrl('index.php?action=apply_update')) ?>,
+        rebuildUrl: <?= json_encode(Helpers::baseUrl('index.php?action=rebuild_repair')) ?>
     };
 
     const updateModalEl = document.getElementById('systemUpdateModal');
     let systemModalInstance = null;
     if (updateModalEl) {
         systemModalInstance = new bootstrap.Modal(updateModalEl);
+    }
+
+    const rebuildModalEl = document.getElementById('rebuildRepairModal');
+    let rebuildModalInstance = null;
+    if (rebuildModalEl) {
+        rebuildModalInstance = new bootstrap.Modal(rebuildModalEl);
     }
 
     const openUpdateModalWithConfirm = () => {
@@ -683,7 +779,123 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     }
 
-    // 6. Seamless Automatic Check on Page Load
+    // 6. Trigger Rebuild & Repair Flow
+    const triggerRebuildBtn = document.getElementById('triggerRebuildBtn');
+    if (triggerRebuildBtn) {
+        triggerRebuildBtn.addEventListener('click', function (e) {
+            e.preventDefault();
+            if (!rebuildModalInstance) return;
+            const confirmView = document.getElementById('rebuildConfirmView');
+            const progressView = document.getElementById('rebuildProgressView');
+            if (confirmView && progressView) {
+                confirmView.classList.remove('d-none');
+                progressView.classList.add('d-none');
+            }
+            rebuildModalInstance.show();
+        });
+    }
+
+    // 7. Start Rebuild Execution after User Confirmation
+    const startRebuildExecutionBtn = document.getElementById('startRebuildExecutionBtn');
+    if (startRebuildExecutionBtn) {
+        startRebuildExecutionBtn.addEventListener('click', function () {
+            const confirmView = document.getElementById('rebuildConfirmView');
+            const progressView = document.getElementById('rebuildProgressView');
+            if (confirmView) confirmView.classList.add('d-none');
+            if (progressView) progressView.classList.remove('d-none');
+
+            const pBar = document.getElementById('rebuildProgressBar');
+            const stepText = document.getElementById('rebuildStepText');
+            const spinner = document.getElementById('rebuildSpinner');
+            const logWrapper = document.getElementById('rebuildLogWrapper');
+            const logBox = document.getElementById('rebuildLogBox');
+            const cancelBtn = document.getElementById('rebuildCancelBtn');
+            const reloadBtn = document.getElementById('rebuildReloadBtn');
+            const closeBtn = document.getElementById('rebuildModalCloseBtn');
+
+            // Reset initial state
+            pBar.className = 'progress-bar progress-bar-striped progress-bar-animated';
+            pBar.style.background = '#6366F1';
+            pBar.style.width = '20%';
+            stepText.textContent = <?= json_encode(I18n::t('rebuild_point_files')) ?>;
+            stepText.className = 'fw-semibold small text-primary';
+            spinner.className = 'spinner-border spinner-border-sm text-primary';
+            spinner.classList.remove('d-none');
+            logWrapper.classList.add('d-none');
+            cancelBtn.classList.remove('d-none');
+            cancelBtn.disabled = true;
+            if (closeBtn) closeBtn.disabled = true;
+            reloadBtn.classList.add('d-none');
+
+            setTimeout(() => {
+                if (pBar.style.width === '20%') {
+                    pBar.style.width = '55%';
+                    stepText.textContent = <?= json_encode(I18n::t('rebuild_point_storage')) ?>;
+                }
+            }, 600);
+
+            setTimeout(() => {
+                if (pBar.style.width === '55%') {
+                    pBar.style.width = '80%';
+                    stepText.textContent = <?= json_encode(I18n::t('rebuild_point_db')) ?>;
+                }
+            }, 1200);
+
+            const formData = new FormData();
+            formData.append('csrf_token', updateI18n.csrfToken);
+
+            fetch(updateI18n.rebuildUrl, {
+                method: 'POST',
+                body: formData,
+                headers: { 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'application/json' }
+            })
+            .then(res => res.json())
+            .then(data => {
+                cancelBtn.disabled = false;
+                if (closeBtn) closeBtn.disabled = false;
+                if (data.success) {
+                    pBar.style.width = '100%';
+                    pBar.style.background = '#10B981';
+                    pBar.classList.remove('progress-bar-animated');
+                    spinner.classList.add('d-none');
+                    stepText.textContent = data.message;
+                    stepText.className = 'fw-bold small text-success';
+
+                    if (data.log && data.log.length > 0) {
+                        logBox.textContent = data.log.join('\n');
+                        logWrapper.classList.remove('d-none');
+                    }
+
+                    cancelBtn.classList.add('d-none');
+                    reloadBtn.classList.remove('d-none');
+                } else {
+                    pBar.style.width = '100%';
+                    pBar.style.background = '#EF4444';
+                    pBar.classList.remove('progress-bar-animated');
+                    spinner.classList.add('d-none');
+                    stepText.textContent = data.message || 'Rebuild error';
+                    stepText.className = 'fw-bold small text-danger';
+
+                    if (data.log && data.log.length > 0) {
+                        logBox.textContent = data.log.join('\n');
+                        logWrapper.classList.remove('d-none');
+                    }
+                }
+            })
+            .catch(err => {
+                cancelBtn.disabled = false;
+                if (closeBtn) closeBtn.disabled = false;
+                pBar.style.width = '100%';
+                pBar.style.background = '#EF4444';
+                pBar.classList.remove('progress-bar-animated');
+                spinner.classList.add('d-none');
+                stepText.textContent = 'Error: ' + (err.message || '');
+                stepText.className = 'fw-bold small text-danger';
+            });
+        });
+    }
+
+    // 8. Seamless Automatic Check on Page Load
     const runAutoCheckOnPageLoad = () => {
         fetch(updateI18n.checkUrl, {
             headers: { 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'application/json' }

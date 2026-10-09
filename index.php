@@ -557,6 +557,28 @@ if ($action === 'apply_update' && $_SERVER['REQUEST_METHOD'] === 'POST') {
     exit;
 }
 
+// Rebuild & Repair System Files and Integrity
+if ($action === 'rebuild_repair' && $_SERVER['REQUEST_METHOD'] === 'POST') {
+    if (!Helpers::verifyCsrf($_POST['csrf_token'] ?? '')) {
+        if (Helpers::isAjax()) {
+            Helpers::json(['success' => false, 'message' => I18n::t('csrf_invalid')], 403);
+        }
+        $_SESSION['flash_error'] = I18n::t('csrf_invalid');
+    } else {
+        $res = Updater::rebuildSystem();
+        if (Helpers::isAjax()) {
+            Helpers::json($res);
+        }
+        if ($res['success']) {
+            $_SESSION['flash_success'] = $res['message'];
+        } else {
+            $_SESSION['flash_error'] = $res['message'] ?? 'Rebuild error';
+        }
+    }
+    header('Location: ' . Helpers::baseUrl('index.php?page=settings'));
+    exit;
+}
+
 // ----------------------------------------------------
 // 5. VIEW RENDERING & ROUTING
 // ----------------------------------------------------

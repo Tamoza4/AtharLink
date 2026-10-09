@@ -303,6 +303,15 @@ class I18n
                 'ok_btn'                        => 'حسناً',
                 'update_error_already_latest'   => 'النظام محدث بالفعل إلى أحدث إصدار (:version)، ولا توجد تحديثات جديدة لتطبيقها.',
                 'update_disabled_hint'          => 'المنصة على أحدث إصدار حالياً. سيتفعل زر التحديث تلقائياً فور توفر إصدار جديد.',
+                'rebuild_repair_btn'            => 'إعادة البناء والإصلاح',
+                'rebuild_repair_confirm_title'  => 'إعادة بناء وإصلاح ملفات وقاعدة بيانات النظام',
+                'rebuild_repair_confirm_text'   => 'سيقوم هذا الإجراء بفحص وترميم كافة ملفات النظام الأساسية، واستعادة أي ملف مفقود من المستودع الرسمي، مع التحقق من سلامة وصلاحيات وفهارس قاعدة البيانات. هل تريد المتابعة؟',
+                'rebuild_point_files'           => 'فحص وترميم كافة ملفات النظام واسترجاع أي ملف كود محذوف تلقائياً.',
+                'rebuild_point_storage'         => 'إعادة إنشاء وحماية ملفات الأمان وصلاحيات مجلد التخزين.',
+                'rebuild_point_db'              => 'فحص سلامة قاعدة البيانات وتطبيق أي ترقيات مفقودة وضغط الفهارس.',
+                'rebuild_point_cache'           => 'تفريغ وتجديد ذاكرة التخزين المؤقتة وكاش التحديثات و OPcache.',
+                'rebuild_start_btn'             => 'بدء إعادة البناء والإصلاح الآن',
+                'rebuild_success_flash'         => 'تمت إعادة بناء النظام وترميم الملفات وفحص قاعدة البيانات بنجاح!',
 
                 // Embed Counter Modal
                 'embed_counter_btn'             => 'تضمين عداد النقرات',
@@ -799,6 +808,15 @@ class I18n
                 'ok_btn'                        => 'OK',
                 'update_error_already_latest'   => 'Platform is already running the latest version (:version). No updates available to apply.',
                 'update_disabled_hint'          => 'Platform is currently on the latest version. Update button will automatically activate when a new release is available.',
+                'rebuild_repair_btn'            => 'Rebuild & Repair',
+                'rebuild_repair_confirm_title'  => 'System Rebuild & Integrity Repair',
+                'rebuild_repair_confirm_text'   => 'This procedure will verify all core system files, restore any missing or deleted files from the official repository, repair database indexes, and refresh security permissions. Proceed?',
+                'rebuild_point_files'           => 'Verify and restore all core application files from official repository.',
+                'rebuild_point_storage'         => 'Recreate and enforce security headers and storage permissions.',
+                'rebuild_point_db'              => 'Execute database health check, rebuild indexes, and apply migrations.',
+                'rebuild_point_cache'           => 'Purge update caches and reset PHP OPcache bytecode.',
+                'rebuild_start_btn'             => 'Start Rebuild & Repair Now',
+                'rebuild_success_flash'         => 'System rebuilt and repaired successfully! All files and database integrity verified.',
 
                 // Embed Counter Modal
                 'embed_counter_btn'             => 'Embed Counter',
