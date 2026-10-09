@@ -16,6 +16,8 @@ $user = Auth::user();
 $siteTitle = Database::getSetting('site_title', 'AtharLink');
 $uniquenessWindow = (int)Database::getSetting('uniqueness_window', (string)DEFAULT_UNIQUENESS_WINDOW);
 $hoursWindow = round($uniquenessWindow / 3600, 1);
+$guestRedirectUrl = Database::getSetting('guest_redirect_url', '');
+$adminLoginSlug = Database::getSetting('admin_login_slug', 'admin');
 $updateInfo = Updater::check();
 ?>
 
@@ -115,6 +117,39 @@ $updateInfo = Updater::check();
                     <label class="form-label small fw-semibold"><?= I18n::t('uniqueness_window_label') ?></label>
                     <input type="number" step="0.5" min="1" max="168" name="uniqueness_hours" class="form-control tamoza-input" value="<?= $hoursWindow ?>" required>
                     <small class="text-secondary d-block mt-1"><?= I18n::t('uniqueness_window_hint') ?></small>
+                </div>
+
+                <!-- Access & Redirection Security -->
+                <div class="pt-3 border-top mb-4" style="border-color: var(--tamoza-border) !important;">
+                    <h5 class="fw-bold mb-1 d-flex align-items-center gap-2">
+                        <?= Icon::get('shield', 'text-indigo') ?>
+                        <span><?= I18n::t('security_routing_title') ?></span>
+                    </h5>
+                    <p class="text-secondary small mb-3"><?= I18n::t('security_routing_desc') ?></p>
+
+                    <!-- Guest Redirect URL -->
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold d-flex align-items-center justify-content-between">
+                            <span><?= I18n::t('guest_redirect_label') ?></span>
+                            <span class="tamoza-badge badge-subtle small"><?= I18n::t('optional_badge') ?></span>
+                        </label>
+                        <input type="url" name="guest_redirect_url" class="form-control tamoza-input" placeholder="https://tamoza.net" value="<?= Helpers::e($guestRedirectUrl) ?>" dir="ltr">
+                        <small class="text-secondary d-block mt-1"><?= I18n::t('guest_redirect_hint') ?></small>
+                    </div>
+
+                    <!-- Custom Admin Entrance Slug -->
+                    <div class="mb-2">
+                        <label class="form-label small fw-semibold"><?= I18n::t('admin_slug_label') ?></label>
+                        <div class="input-group" dir="ltr">
+                            <span class="input-group-text tamoza-input-addon text-secondary small font-monospace"><?= Helpers::baseUrl() ?>/</span>
+                            <input type="text" id="adminLoginSlugInput" name="admin_login_slug" class="form-control tamoza-input font-monospace" placeholder="admin" pattern="[a-zA-Z0-9_\-]{2,40}" value="<?= Helpers::e($adminLoginSlug) ?>" required>
+                            <button type="button" class="btn btn-tamoza-secondary d-inline-flex align-items-center gap-1" id="copyAdminUrlBtn" title="<?= Helpers::e(I18n::t('copy_admin_url_title')) ?>">
+                                <?= Icon::get('copy', '', 14) ?>
+                                <span class="d-none d-sm-inline"><?= I18n::t('copy_btn') ?></span>
+                            </button>
+                        </div>
+                        <small class="text-secondary d-block mt-1" dir="auto"><?= I18n::t('admin_slug_hint') ?></small>
+                    </div>
                 </div>
 
                 <button type="submit" class="btn btn-tamoza-primary px-4"><?= I18n::t('save_settings_btn') ?></button>
@@ -458,6 +493,28 @@ document.addEventListener('DOMContentLoaded', function () {
     };
     bindSecretToggle('toggleApiTokenBtn', 'apiTokenField');
     bindSecretToggle('toggleRecoveryKeyBtn', 'recoveryKeyField');
+
+    // Admin Entrance URL Copy Button
+    const copyAdminBtn = document.getElementById('copyAdminUrlBtn');
+    const adminSlugInput = document.getElementById('adminLoginSlugInput');
+    if (copyAdminBtn && adminSlugInput) {
+        copyAdminBtn.addEventListener('click', function () {
+            const baseUrl = <?= json_encode(rtrim(Helpers::baseUrl(), '/')) ?>;
+            const slug = (adminSlugInput.value || 'admin').trim().replace(/^\/+|\/+$/g, '');
+            const fullUrl = baseUrl + '/' + slug;
+            navigator.clipboard.writeText(fullUrl).then(() => {
+                const originalHtml = copyAdminBtn.innerHTML;
+                copyAdminBtn.innerHTML = <?= json_encode(Icon::get('check', '', 14)) ?> + ' <span>' + (window.__i18n?.copied || <?= json_encode(I18n::t('copied_text')) ?>) + '</span>';
+                copyAdminBtn.classList.add('badge-success');
+                setTimeout(() => {
+                    copyAdminBtn.innerHTML = originalHtml;
+                    copyAdminBtn.classList.remove('badge-success');
+                }, 2000);
+            }).catch(() => {
+                prompt(window.__i18n?.copyManually || 'Copy URL:', fullUrl);
+            });
+        });
+    }
 
     // 2. Localization context for updates
     const updateI18n = {

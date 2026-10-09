@@ -80,6 +80,30 @@ class Helpers
     }
 
     /**
+     * Get clean relative request path (e.g. 'admin', 'portal', or '')
+     */
+    public static function getRequestPath(): string
+    {
+        $uri = $_SERVER['REQUEST_URI'] ?? '/';
+        $path = (string)(parse_url($uri, PHP_URL_PATH) ?? '/');
+        $scriptDir = str_replace('\\', '/', dirname($_SERVER['SCRIPT_NAME'] ?? ''));
+        $scriptDir = rtrim($scriptDir, '/');
+
+        if ($scriptDir !== '' && str_starts_with($path, $scriptDir)) {
+            $path = substr($path, strlen($scriptDir));
+        }
+
+        $path = trim($path, '/');
+        if ($path === 'index.php') {
+            return '';
+        }
+        if (str_starts_with($path, 'index.php/')) {
+            $path = trim(substr($path, 10), '/');
+        }
+        return $path;
+    }
+
+    /**
      * Get Client IP Address with proxy support
      */
     public static function getClientIp(): string

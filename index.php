@@ -216,7 +216,9 @@ if ($action === 'logout') {
         Auth::logout();
         $_SESSION['flash_success'] = I18n::t('logout_success');
     }
-    header('Location: ' . Helpers::baseUrl('index.php?action=login'));
+    $adminSlug = Database::getSetting('admin_login_slug', 'admin');
+    if (empty($adminSlug)) $adminSlug = 'admin';
+    header('Location: ' . Helpers::baseUrl($adminSlug));
     exit;
 }
 
@@ -224,17 +226,36 @@ if ($action === 'logout') {
 // 3. AUTHENTICATION ENFORCEMENT
 // ----------------------------------------------------
 if (!Auth::check()) {
-    // If visitor is unauthenticated and requested root home directly with no page/action
-    if (empty($_GET['page']) && empty($_GET['action'])) {
-        header("Location: https://tamoza.net", true, 302);
+    $requestPath = Helpers::getRequestPath();
+    $adminSlug = Database::getSetting('admin_login_slug', 'admin');
+    if (empty($adminSlug)) {
+        $adminSlug = 'admin';
+    }
+
+    // 1. If visitor requested the admin entrance slug or standard login action/page
+    if ($requestPath === $adminSlug || $action === 'login' || $page === 'login') {
+        require __DIR__ . '/views/auth/login.php';
         exit;
     }
 
-    // If an unauthenticated AJAX request was made, return 401 JSON instead of HTML login page
+    // 2. If an unauthenticated AJAX request was made, return 401 JSON instead of HTML login page
     if (Helpers::isAjax()) {
         Helpers::json(['success' => false, 'message' => I18n::t('session_expired')], 401);
     }
 
+    // 3. Check if guest homepage / unauthenticated redirection is configured
+    $guestRedirect = Database::getSetting('guest_redirect_url', '');
+    if (!empty($guestRedirect)) {
+        $targetHost = parse_url($guestRedirect, PHP_URL_HOST);
+        $currentHost = $_SERVER['HTTP_HOST'] ?? '';
+        // Prevent redirect loop if target host matches current host
+        if ($targetHost && strtolower($targetHost) !== strtolower($currentHost)) {
+            header('Location: ' . $guestRedirect, true, 302);
+            exit;
+        }
+    }
+
+    // 4. Default fallback: show login page
     require __DIR__ . '/views/auth/login.php';
     exit;
 }
@@ -427,12 +448,38 @@ if ($action === 'save_settings' && $_SERVER['REQUEST_METHOD'] === 'POST') {
         $hours = max(1.0, (float)($_POST['uniqueness_hours'] ?? 24));
         $seconds = (int)round($hours * 3600);
 
+        // Guest Redirection URL validation & saving
+        $guestRedirect = trim((string)($_POST['guest_redirect_url'] ?? ''));
+        if (!empty($guestRedirect)) {
+            if (!filter_var($guestRedirect, FILTER_VALIDATE_URL) || !preg_match('#^https?://#i', $guestRedirect)) {
+                $_SESSION['flash_error'] = I18n::t('guest_redirect_invalid');
+                header('Location: ' . Helpers::baseUrl('index.php?page=settings'));
+                exit;
+            }
+        }
+
+        // Custom Admin Entrance Slug validation & saving
+        $adminSlug = trim((string)($_POST['admin_login_slug'] ?? 'admin'), " /\t\n\r\0\x0B");
+        if (empty($adminSlug)) {
+            $adminSlug = 'admin';
+        }
+        $reservedSlugs = ['api', 'c', 'r', 'assets', 'storage', 'bin', 'config', 'index.php', 'r.php', 'embed.js', 'badge.php'];
+        if (!preg_match('/^[a-zA-Z0-9_-]{2,40}$/', $adminSlug) || in_array(strtolower($adminSlug), $reservedSlugs, true)) {
+            $_SESSION['flash_error'] = I18n::t('admin_slug_invalid');
+            header('Location: ' . Helpers::baseUrl('index.php?page=settings'));
+            exit;
+        }
+
         Database::setSetting('site_title', $title);
         Database::setSetting('uniqueness_window', (string)$seconds);
+        Database::setSetting('guest_redirect_url', $guestRedirect);
+        Database::setSetting('admin_login_slug', $adminSlug);
 
         AuditLogger::log('save_settings', 'Updated system settings: ' . $title, [
-            'site_title'       => $title,
-            'uniqueness_hours' => $hours
+            'site_title'         => $title,
+            'uniqueness_hours'   => $hours,
+            'guest_redirect_url' => $guestRedirect,
+            'admin_login_slug'   => $adminSlug
         ]);
 
         $_SESSION['flash_success'] = I18n::t('settings_saved_success');
