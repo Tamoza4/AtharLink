@@ -984,3 +984,82 @@ option {
     height: auto !important;
 }
 
+/* ==========================================================================
+   Visual Diff & Audit Log Change Viewer
+   ========================================================================== */
+.tamoza-diff-card {
+    background: var(--tamoza-surface-card);
+    border: 1px solid var(--tamoza-border);
+    border-radius: var(--tamoza-radius-md);
+    padding: 16px;
+    margin-bottom: 12px;
+    overflow: hidden;
+}
+
+.tamoza-diff-grid {
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
+    align-items: center;
+    gap: 12px;
+}
+
+@media (max-width: 767px) {
+    .tamoza-diff-grid {
+        grid-template-columns: 1fr;
+        gap: 8px;
+    }
+}
+
+.tamoza-diff-box {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    min-width: 0;
+}
+
+.tamoza-diff-val {
+    padding: 10px 14px;
+    border-radius: var(--tamoza-radius-sm);
+    font-family: var(--bs-font-monospace);
+    font-size: 13px;
+    line-height: 1.5;
+    word-break: break-all;
+    min-height: 42px;
+    display: flex;
+    align-items: center;
+}
+
+.tamoza-diff-val.is-old {
+    background: rgba(239, 68, 68, 0.12);
+    border: 1px solid rgba(239, 68, 68, 0.3);
+    color: #F87171;
+}
+
+.tamoza-diff-val.is-new {
+    background: rgba(16, 185, 129, 0.12);
+    border: 1px solid rgba(16, 185, 129, 0.3);
+    color: #34D399;
+    font-weight: 600;
+}
+
+.tamoza-diff-arrow {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--tamoza-text-muted);
+    font-size: 18px;
+    padding-top: 24px;
+}
+
+@media (max-width: 767px) {
+    .tamoza-diff-arrow {
+        padding-top: 0;
+        transform: rotate(90deg);
+    }
+}
+
+[dir="rtl"] .tamoza-diff-arrow-icon {
+    transform: rotate(180deg);
+    display: inline-block;
+}
+

@@ -199,14 +199,14 @@ $getActionBadge = function (string $action): array {
                                     <?= Helpers::e($log['description']) ?>
                                 </div>
                                 <?php if (!empty($detailsArr['changes']) && is_array($detailsArr['changes'])): ?>
-                                    <div class="d-flex flex-wrap gap-1.5 mt-1.5">
+                                    <div class="d-flex flex-wrap gap-2 mt-2">
                                         <?php foreach ($detailsArr['changes'] as $fKey => $chg): ?>
-                                            <span class="badge bg-body-tertiary border border-secondary-subtle text-secondary py-1 px-2 d-inline-flex align-items-center gap-1.5 fw-normal">
-                                                <strong class="text-body"><?= Helpers::e(I18n::t('field_' . $fKey) !== 'field_' . $fKey ? I18n::t('field_' . $fKey) : ($chg['field'] ?? $fKey)) ?>:</strong>
-                                                <span class="text-danger text-decoration-line-through font-monospace smaller text-truncate" style="max-width: 140px;" title="<?= Helpers::e((string)($chg['old'] ?? '')) ?>"><?= Helpers::e((string)($chg['old'] ?? '—')) ?></span>
-                                                <span class="text-muted">➔</span>
-                                                <span class="text-success fw-semibold font-monospace smaller text-truncate" style="max-width: 140px;" title="<?= Helpers::e((string)($chg['new'] ?? '')) ?>"><?= Helpers::e((string)($chg['new'] ?? '—')) ?></span>
-                                            </span>
+                                            <div class="d-inline-flex align-items-center gap-1.5 p-1 px-2 rounded-2 bg-body-tertiary border border-secondary-subtle small">
+                                                <strong class="text-body smaller"><?= Helpers::e(I18n::t('field_' . $fKey) !== 'field_' . $fKey ? I18n::t('field_' . $fKey) : ($chg['field'] ?? $fKey)) ?>:</strong>
+                                                <span class="badge bg-danger-subtle text-danger border border-danger-subtle text-decoration-line-through font-monospace px-1.5 py-0.5 text-truncate" style="max-width: 130px;" title="<?= Helpers::e((string)($chg['old'] ?? '')) ?>"><?= Helpers::e((string)($chg['old'] ?? '—')) ?></span>
+                                                <span class="text-muted smaller" style="display:inline-block; <?= I18n::getDir() === 'rtl' ? 'transform: rotate(180deg);' : '' ?>">➔</span>
+                                                <span class="badge bg-success-subtle text-success border border-success-subtle fw-bold font-monospace px-1.5 py-0.5 text-truncate" style="max-width: 130px;" title="<?= Helpers::e((string)($chg['new'] ?? '')) ?>"><?= Helpers::e((string)($chg['new'] ?? '—')) ?></span>
+                                            </div>
                                         <?php endforeach; ?>
                                     </div>
                                 <?php elseif (!empty($detailsArr['target_url'])): ?>
@@ -528,24 +528,25 @@ document.addEventListener('DOMContentLoaded', function () {
                     changesSection.classList.remove('d-none');
                     changesList.forEach(item => {
                         const card = document.createElement('div');
-                        card.className = 'p-3 rounded-3 bg-body-tertiary border border-secondary-subtle';
+                        card.className = 'tamoza-diff-card';
                         card.innerHTML = `
-                            <div class="d-flex align-items-center justify-content-between mb-2 pb-1 border-bottom border-secondary-subtle">
+                            <div class="d-flex align-items-center justify-content-between mb-2.5 pb-2 border-bottom border-secondary-subtle">
                                 <span class="fw-bold small text-body">${escapeHtml(item.label)}</span>
+                                <span class="badge bg-secondary-subtle text-secondary small font-monospace">${escapeHtml(item.fieldKey)}</span>
                             </div>
-                            <div class="row g-2 align-items-stretch">
-                                <div class="col-12 col-md-5">
+                            <div class="tamoza-diff-grid">
+                                <div class="tamoza-diff-box">
                                     <div class="smaller text-secondary fw-semibold mb-1">${escapeHtml(i18n.before)}:</div>
-                                    <div class="p-2.5 rounded-2 bg-danger-subtle text-danger font-monospace smaller text-break border border-danger-subtle h-100 d-flex align-items-center">
+                                    <div class="tamoza-diff-val is-old">
                                         <span class="text-decoration-line-through">${escapeHtml(item.oldVal !== null && item.oldVal !== undefined && item.oldVal !== '' ? String(item.oldVal) : '—')}</span>
                                     </div>
                                 </div>
-                                <div class="col-12 col-md-2 d-flex align-items-center justify-content-center text-secondary py-1">
-                                    <span class="fs-4">➔</span>
+                                <div class="tamoza-diff-arrow">
+                                    <span class="tamoza-diff-arrow-icon">➔</span>
                                 </div>
-                                <div class="col-12 col-md-5">
+                                <div class="tamoza-diff-box">
                                     <div class="smaller text-success fw-semibold mb-1">${escapeHtml(i18n.after)}:</div>
-                                    <div class="p-2.5 rounded-2 bg-success-subtle text-success font-monospace smaller text-break border border-success-subtle h-100 d-flex align-items-center fw-bold">
+                                    <div class="tamoza-diff-val is-new">
                                         <span>${escapeHtml(item.newVal !== null && item.newVal !== undefined && item.newVal !== '' ? String(item.newVal) : '—')}</span>
                                     </div>
                                 </div>
