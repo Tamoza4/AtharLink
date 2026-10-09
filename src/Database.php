@@ -71,6 +71,14 @@ class Database
                     $pdo->exec("ALTER TABLE links ADD COLUMN auth_lang TEXT DEFAULT 'auto';");
                 }
             }
+
+            $clicksTableExists = $pdo->query("SELECT name FROM sqlite_master WHERE type='table' AND name='clicks'")->fetchColumn();
+            if ($clicksTableExists) {
+                $clickCols = $pdo->query("PRAGMA table_info(clicks)")->fetchAll(PDO::FETCH_COLUMN, 1);
+                if (!in_array('ip_address', $clickCols, true)) {
+                    $pdo->exec("ALTER TABLE clicks ADD COLUMN ip_address TEXT NULL;");
+                }
+            }
         } catch (\Throwable $e) {
             error_log('AtharLink Migration Check Notice: ' . $e->getMessage());
         }
@@ -143,6 +151,7 @@ class Database
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 link_id INTEGER NOT NULL,
                 is_unique INTEGER DEFAULT 0,
+                ip_address TEXT NULL,
                 ip_hash TEXT NOT NULL,
                 country_code TEXT DEFAULT 'XX',
                 referrer TEXT NULL,

@@ -1,156 +1,104 @@
-# AtharLink (أثر لينك) 🔗⚡
-### High-Performance Self-Hosted URL Shortener & Real-Time Click Analytics Engine
-**محرك تتبع وتقصير الروابط الذاتي عالي السرعة وتحليلات النقرات المباشرة**
+# AtharLink
+
+A lightweight, self-hosted URL shortener and click tracker built with PHP and SQLite. Fast, dependency-free, and easy to set up on any shared hosting or VPS.
 
 ---
 
-## 🌟 Features / المميزات
+## Why AtharLink?
 
-- **⚡ Sub-Millisecond Redirection (سرعة توجيه فائقة):** Micro-core routing architecture via `r.php` with zero framework bloat.
-- **🛠️ Zero-Friction Web Installer (مثبت ذاتي فوري):** First-time setup wizard initializes SQLite 3 database and admin credentials in seconds.
-- **📊 Real-Time Analytics Dashboard (لوحة تحليلات تفاعلية):**
-  - KPI overview: Total Clicks, Unique Clicks, Conversion Rate, Active Links, Peak Hours.
-  - Interactive charts (Timeline Growth, Referrers, Devices, Browsers, Top Countries).
-  - Live visitor activity feed stream with GDPR-compliant IP anonymization.
-  - Top Performing Links Leaderboard with percentage distribution.
-- **🎨 Premium UI System (تصميم احترافي فائق الدقة):**
-  - Built on the **Tamoza UI** design standard: strict 8pt grid, soft glassmorphism, responsive centered layout.
-  - Seamless Dark & Light themes with persistent state.
-  - Pixel-perfect Lucide Vector SVG icons.
-- **📸 Infographic Report Card Export (تصدير التقارير كصور):** Generates high-resolution Retina 2x graphical report cards downloadable as PNG or copied directly to clipboard.
-- **🔒 Advanced Link Protection (حماية متقدمة للروابط):**
-  - Custom password-protected short links with brute-force lockout protection.
-  - Expiration dates and maximum click limits.
+Most URL shorteners out there are either bloated with Node/Docker dependencies or locked behind monthly subscriptions. AtharLink is built to be simple: drop the files onto a server with PHP and SQLite, run the installer, and you have your own private tracking system running in under two minutes.
+
+---
+
+## Features
+
+- **Fast Redirections:** A tiny routing micro-core (`r.php`) handles redirects directly with minimal overhead.
+- **Detailed Click Analytics:** Track total clicks, unique visitors, referrers, device types, browsers, and country origins in real time.
+- **Web-Based Installer:** Sets up the SQLite database and admin account on the first visit. No manual SQL imports or config editing needed.
+- **Clean Dashboard:** Responsive dashboard with dark/light mode toggle and bilingual UI support (English & Arabic).
+- **Embeddable Click Badges:** Includes an `embed.js` script so you can display live click counts on your own websites or blogs.
+- **Link Controls:**
+  - Custom slugs and optional titles.
+  - Password-protected links.
+  - Expiration dates and click limits.
+  - Configurable redirect types (302 temporary, 301 permanent).
   - Automatic UTM parameter forwarding.
-  - Instant dynamic QR Code generation with one-click PNG download.
-- **🌐 Dual Language Support (دعم ثنائي كامل للغات):** Native Arabic (RTL) and English (LTR) with instant on-the-fly toggling.
-- **🔑 Developer REST API (واجهة برمجية متكاملة):** Complete API (`/api/v1`) with Bearer token authentication to programmatically create, manage, and fetch link analytics.
-- **🛡️ Emergency Recovery Key (استرداد الطوارئ):** Built-in cryptographic recovery system to safely reset the admin password without requiring SMTP mail servers.
-- **💾 Database Backup & Restore (نسخ احتياطي واستعادة):** Download or restore instant `.sqlite` snapshots directly from the dashboard.
+  - Built-in QR code generator.
+- **Data Export:** Export your links and click logs to CSV or JSON anytime.
+- **REST API:** Simple `/api/v1` endpoints with Bearer token authentication to manage links programmatically.
+- **SQLite Database:** Zero database setup required. Runs on a single `.sqlite` file with WAL mode enabled for smooth concurrent access.
 
 ---
 
-## 📋 System Requirements / متطلبات التشغيل
+## Requirements
 
-- **PHP:** 8.2 or higher (PHP 8.2+).
-- **Web Server:** Apache (with `mod_rewrite` enabled) or Nginx / Caddy.
+- **PHP 8.2** or higher
+- **Web Server:** Apache (with `mod_rewrite` enabled), Nginx, or Caddy
 - **PHP Extensions:**
-  - `pdo` & `pdo_sqlite`
+  - `pdo_sqlite`
   - `curl`
   - `mbstring`
   - `openssl`
   - `json`
   - `filter`
-- **File Permissions:** Write permissions on the `storage/` directory (`chmod 775 storage` or `chmod 777 storage` on Linux).
+- Write permissions on the `storage/` directory
 
 ---
 
-## 🚀 Quick Installation / خطوات التثبيت السريع
+## Installation
 
-### 1. Upload Files / رفع الملفات
-Clone this repository or upload the contents directly to your web server's document root (e.g., `public_html/` or `/var/www/html/`):
+### 1. Upload files
+Upload the repository files to your web root (such as `public_html/` or `/var/www/html/`):
 
 ```bash
-git clone https://github.com/your-username/AtharLink.git .
+git clone https://github.com/Tamoza4/AtharLink.git .
 ```
 
-### 2. Set Storage Permissions / ضبط صلاحيات التخزين
-Ensure the `storage/` folder is writable by the web server:
+### 2. Set permissions
+Make sure PHP can write to the `storage/` folder:
 
 ```bash
 chmod -R 775 storage
-# or for shared hosting environments:
+# or on shared hosting if needed:
 chmod -R 777 storage
 ```
 
-### 3. Launch Web Setup Wizard / بدء التثبيت الذاتي
-1. Open your browser and navigate to your domain (e.g. `https://yourdomain.com`).
-2. The automatic installer will detect the fresh installation and display the environment check.
-3. Enter your desired **Admin Username** and **Password** (minimum 8 characters).
-4. Click **"Start Setup & Launch Platform" (بدء التهيئة والتشغيل الفوري)**.
-5. Your platform is immediately initialized, secured, and ready for production!
+### 3. Open in your browser
+Navigate to your domain (e.g. `https://example.com/`). The setup wizard will automatically launch, check your server environment, and guide you through creating your admin account.
+
+Once completed, you are redirected straight to your dashboard.
 
 ---
 
-## 🔄 Updating AtharLink / كيفية تحديث المنصة
+## Updating
 
-### Option A: Using Git (الأسهل والأسرع عبر Git)
-If you installed AtharLink via `git clone`, run the automated update script:
+### Via Git
+If you installed using `git clone`, pull updates and run the migration script:
 
 ```bash
 bash update.sh
 ```
-*This command automatically pulls the latest changes from Git, creates an automatic backup of your database, applies any new schema updates, and verifies system integrity.*
 
-### Option B: Manual File Update (التحديث اليدوي)
-If you update files manually via FTP, cPanel, or ZIP:
-1. Upload and overwrite all files **EXCEPT** the `storage/` directory (your database and keys are inside `storage/` and must never be deleted).
-2. Run the updater CLI tool to update the database schema:
+### Manual update (FTP / ZIP)
+1. Replace all files and folders **except** the `storage/` directory (your database lives there).
+2. Run database migrations from the command line:
 ```bash
 php bin/update.php
 ```
 
 ---
 
-## 📁 Directory Structure / هيكلية المجلدات
+## Security
 
-```text
-AtharLink/
-├── .htaccess              # Apache URL rewriting & security rules
-├── .gitignore             # Git ignore rules for runtime files
-├── README.md              # Project documentation
-├── LICENSE                # Open-source license (MIT)
-├── embed.js               # Public lightweight click counter embed script
-├── index.php              # Application front controller & dashboard router
-├── r.php                  # Ultra-fast redirection endpoint
-├── api/
-│   └── v1/
-│       └── index.php      # RESTful API router (JSON endpoints)
-├── assets/
-│   ├── css/
-│   │   ├── app.css        # Core Tamoza UI styling & responsive theme variables
-│   │   └── bootstrap.min.css
-│   └── js/
-│       ├── app.js         # Interactive application behaviors & live checks
-│       ├── report-card.js # Retina 2x Canvas infographic generator
-│       ├── chart.umd.min.js
-│       └── qrcode.min.js
-├── bin/
-│   └── reset_password.php # CLI emergency password reset tool
-├── config/
-│   └── config.php         # Application constants & environment settings
-├── src/
-│   ├── Auth.php           # Authentication, brute-force rate limiter & sessions
-│   ├── Database.php       # SQLite connection manager, schema & WAL mode
-│   ├── Helpers.php        # Utility functions, encryption, XSS & CSRF filters
-│   ├── I18n.php           # Dual-language localization dictionary (AR/EN)
-│   ├── Icon.php           # Lightweight Lucide Vector SVG icon engine
-│   ├── LinkManager.php    # CRUD operations & analytics calculation engine
-│   └── Tracker.php        # Redirection handler, bot filter & click logger
-├── storage/
-│   ├── .htaccess          # Strict web access block for database & secrets
-│   └── .gitkeep           # Preserves empty storage folder in git
-└── views/
-    ├── auth/              # Sign-in & emergency recovery modals
-    ├── dashboard/         # Overview, Links, Stats, and Settings views
-    ├── install/           # Zero-friction installation view
-    └── layout/            # Floating navigation header & footer
-```
+- Direct web access to the `storage/` folder and SQLite files is blocked via `.htaccess`.
+- CSRF tokens are enforced on all form actions.
+- Login rate-limiting locks accounts after repeated failed attempts to block brute-force attacks.
+- Link passwords and sensitive tokens are encrypted using `AES-256-GCM`.
+- Emergency password reset tool included via CLI (`bin/reset_password.php`).
 
 ---
 
-## 🔒 Security Best Practices / معايير الأمان المطبقة
+## License
 
-- **SQLite WAL Mode:** Write-Ahead Logging is enabled by default to prevent database locks under concurrent traffic.
-- **Direct Database Shield:** Direct HTTP access to `storage/` and `.sqlite` files is completely forbidden via Apache `.htaccess` directives.
-- **CSRF Tokens:** All destructive and configuration operations require validated CSRF tokens.
-- **Rate Limiting:** IP and account brute-force protection locks accounts for 15 minutes after 5 consecutive failed attempts.
-- **Encrypted Storage:** Sensitive link passwords and API secrets are encrypted using authenticated `AES-256-GCM`.
-- **GDPR Anonymization:** Raw visitor IP addresses are never saved; they are hashed via SHA-256 with a rolling daily salt.
-
----
-
-## 📄 License / الترخيص
-
-This project is open-source software licensed under the [MIT License](LICENSE).
-Developed with ❤️ by **Tamoza**.
+Released under the [MIT License](LICENSE).
+Created by **Tamoza**.

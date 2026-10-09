@@ -31,6 +31,15 @@ class Helpers
     }
 
     /**
+     * Check if current request was sent via AJAX / Fetch
+     */
+    public static function isAjax(): bool
+    {
+        return (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest')
+            || (isset($_SERVER['HTTP_ACCEPT']) && str_contains(strtolower($_SERVER['HTTP_ACCEPT']), 'application/json'));
+    }
+
+    /**
      * Get Application Base URL
      */
     public static function baseUrl(string $path = ''): string

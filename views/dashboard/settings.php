@@ -163,21 +163,23 @@ $updateInfo = Updater::check();
                     </h4>
                     <p class="text-secondary small mb-0"><?= I18n::t('updates_card_desc') ?></p>
                 </div>
-                <?php if (!empty($updateInfo['has_update'])): ?>
-                    <span class="tamoza-badge badge-warning d-inline-flex align-items-center gap-1">
-                        <span class="pulse-dot"></span>
-                        <span><?= I18n::t('update_available_badge', ['version' => 'v' . $updateInfo['latest']]) ?></span>
-                    </span>
-                <?php else: ?>
-                    <span class="tamoza-badge badge-success d-inline-flex align-items-center gap-1">
-                        <?= Icon::get('check-circle', '', 14) ?>
-                        <span><?= I18n::t('system_up_to_date') ?></span>
-                    </span>
-                <?php endif; ?>
+                <div id="updateStatusBadgeWrapper">
+                    <?php if (!empty($updateInfo['has_update'])): ?>
+                        <span id="updateStatusBadge" class="tamoza-badge badge-warning d-inline-flex align-items-center gap-1">
+                            <span class="pulse-dot"></span>
+                            <span><?= I18n::t('update_available_badge', ['version' => 'v' . $updateInfo['latest']]) ?></span>
+                        </span>
+                    <?php else: ?>
+                        <span id="updateStatusBadge" class="tamoza-badge badge-success d-inline-flex align-items-center gap-1">
+                            <?= Icon::get('check-circle', '', 14) ?>
+                            <span><?= I18n::t('system_up_to_date') ?></span>
+                        </span>
+                    <?php endif; ?>
+                </div>
             </div>
 
             <!-- Version Comparison Box -->
-            <div class="row g-3 mb-3">
+            <div class="row g-3 mb-2">
                 <div class="col-6">
                     <div class="p-3 rounded-4" style="background: rgba(99, 102, 241, 0.06); border: 1px solid var(--tamoza-border);">
                         <span class="text-secondary small d-block mb-1"><?= I18n::t('current_version_label') ?></span>
@@ -187,11 +189,19 @@ $updateInfo = Updater::check();
                 <div class="col-6">
                     <div class="p-3 rounded-4" style="background: rgba(16, 185, 129, 0.06); border: 1px solid var(--tamoza-border);">
                         <span class="text-secondary small d-block mb-1"><?= I18n::t('latest_version_label') ?></span>
-                        <span class="fs-5 fw-bold font-monospace <?= !empty($updateInfo['has_update']) ? 'text-warning' : 'text-success' ?>">
-                            v<?= Helpers::e($updateInfo['latest']) ?>
+                        <span id="updateLatestVersionDisplay" class="fs-5 fw-bold font-monospace <?= !empty($updateInfo['has_update']) ? 'text-warning' : 'text-success' ?>">
+                            v<?= Helpers::e(!empty($updateInfo['latest']) ? $updateInfo['latest'] : ($updateInfo['current'] ?? APP_VERSION)) ?>
                         </span>
                     </div>
                 </div>
+            </div>
+
+            <!-- GitHub Source Link Hint -->
+            <div class="mb-3">
+                <a href="<?= Helpers::e($updateInfo['release_url']) ?>" target="_blank" class="text-secondary small text-decoration-none d-inline-flex align-items-center gap-1">
+                    <span><?= I18n::t('repo_url_label') ?>: Tamoza4/AtharLink</span>
+                    <?= Icon::get('external-link', '', 12) ?>
+                </a>
             </div>
 
             <?php if (!empty($updateInfo['has_update']) && !empty($updateInfo['release_notes'])): ?>
@@ -208,22 +218,19 @@ $updateInfo = Updater::check();
             <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 pt-2 border-top" style="border-color: var(--tamoza-border) !important;">
                 <div class="d-flex align-items-center gap-2">
                     <!-- Check for Updates Now Button -->
-                    <a href="<?= Helpers::baseUrl('index.php?action=check_updates') ?>" class="btn btn-tamoza-secondary d-inline-flex align-items-center gap-2">
-                        <?= Icon::get('refresh', '', 14) ?>
-                        <span><?= I18n::t('check_updates_btn') ?></span>
-                    </a>
+                    <button type="button" id="checkUpdatesBtn" class="btn btn-tamoza-secondary d-inline-flex align-items-center gap-2">
+                        <span id="checkUpdatesIcon"><?= Icon::get('refresh', '', 14) ?></span>
+                        <span id="checkUpdatesText"><?= I18n::t('check_updates_btn') ?></span>
+                    </button>
 
-                    <!-- Apply Update Now Button -->
-                    <form method="POST" action="<?= Helpers::baseUrl('index.php?action=apply_update') ?>" onsubmit="return confirm('<?= Helpers::e(I18n::t('update_confirm_prompt')) ?>');" class="m-0">
-                        <?= Helpers::csrfInput() ?>
-                        <button type="submit" class="btn <?= !empty($updateInfo['has_update']) ? 'btn-tamoza-primary' : 'btn-tamoza-subtle' ?> d-inline-flex align-items-center gap-2">
-                            <?= Icon::get('rocket', '', 15) ?>
-                            <span><?= I18n::t('update_now_btn') ?></span>
-                        </button>
-                    </form>
+                    <!-- Trigger Interactive Update Modal (Always Active, Checks First) -->
+                    <button type="button" id="triggerUpdateBtn" class="btn <?= !empty($updateInfo['has_update']) ? 'btn-tamoza-primary' : 'btn-tamoza-secondary' ?> d-inline-flex align-items-center gap-2">
+                        <span id="triggerUpdateIcon"><?= Icon::get('rocket', '', 15) ?></span>
+                        <span id="triggerUpdateText"><?= I18n::t('update_now_btn') ?></span>
+                    </button>
                 </div>
 
-                <span class="text-secondary small">
+                <span id="updateCheckedDateDisplay" class="text-secondary small">
                     <?= I18n::t('update_checking_hint', ['date' => !empty($updateInfo['cached_at']) ? date('Y-m-d H:i', (int)$updateInfo['cached_at']) : date('Y-m-d H:i')]) ?>
                 </span>
             </div>
@@ -231,8 +238,107 @@ $updateInfo = Updater::check();
     </div>
 </div>
 
+<!-- Modal: Check Updates Feedback Modal -->
+<div class="modal fade" id="checkUpdateStatusModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered" style="max-width: 440px;">
+        <div class="modal-content shadow-lg border-0 text-center p-4" style="background: #161A23 !important; border: 1px solid var(--tamoza-border); border-radius: var(--tamoza-radius-lg);">
+            <div id="checkModalIconWrapper" class="mx-auto mb-3 d-flex align-items-center justify-content-center" style="width: 58px; height: 58px; border-radius: 50%;">
+                <span id="checkModalIcon"></span>
+            </div>
+            <h5 class="fw-bold mb-2 text-white" id="checkModalTitle"></h5>
+            <p class="text-secondary small mb-4" id="checkModalMessage"></p>
+            <div class="d-flex justify-content-center gap-2" id="checkModalActions">
+                <button type="button" class="btn btn-tamoza-primary px-4" data-bs-dismiss="modal"><?= I18n::t('ok_btn') ?></button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal: System Update with Confirmation Step & Progress Bar -->
+<div class="modal fade" id="systemUpdateModal" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content shadow border-0" style="background: #161A23 !important; border: 1px solid var(--tamoza-border); border-radius: var(--tamoza-radius-lg);">
+            
+            <!-- Step 1: Confirmation View -->
+            <div id="updateConfirmView">
+                <div class="modal-header border-0 pb-0">
+                    <h5 class="modal-title fw-bold d-flex align-items-center gap-2 text-white">
+                        <?= Icon::get('rocket', 'text-indigo') ?>
+                        <span><?= I18n::t('update_confirm_title') ?></span>
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body py-4">
+                    <p class="text-white fw-semibold mb-3"><?= I18n::t('update_confirm_text') ?></p>
+                    <div class="p-3 rounded-4 mb-2 small" style="background: rgba(99, 102, 241, 0.05); border: 1px solid var(--tamoza-border);">
+                        <ul class="list-unstyled mb-0 d-flex flex-column gap-2 text-secondary">
+                            <li class="d-flex align-items-center gap-2">
+                                <span class="text-success"><?= Icon::get('check-circle', '', 14) ?></span>
+                                <span><?= I18n::t('update_confirm_point_backup') ?></span>
+                            </li>
+                            <li class="d-flex align-items-center gap-2">
+                                <span class="text-success"><?= Icon::get('check-circle', '', 14) ?></span>
+                                <span><?= I18n::t('update_confirm_point_git') ?></span>
+                            </li>
+                            <li class="d-flex align-items-center gap-2">
+                                <span class="text-success"><?= Icon::get('check-circle', '', 14) ?></span>
+                                <span><?= I18n::t('update_confirm_point_db') ?></span>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+                <div class="modal-footer border-0 pt-0">
+                    <button type="button" class="btn btn-tamoza-subtle btn-sm px-3" data-bs-dismiss="modal"><?= I18n::t('update_dismiss_btn') ?></button>
+                    <button type="button" class="btn btn-tamoza-primary btn-sm px-4 d-inline-flex align-items-center gap-2" id="startUpdateExecutionBtn">
+                        <?= Icon::get('rocket', '', 14) ?>
+                        <span><?= I18n::t('update_confirm_btn') ?></span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Step 2: Execution & Progress Bar View -->
+            <div id="updateProgressView" class="d-none">
+                <div class="modal-header border-0 pb-0">
+                    <h5 class="modal-title fw-bold d-flex align-items-center gap-2 text-white">
+                        <?= Icon::get('cloud-download', 'text-indigo') ?>
+                        <span><?= I18n::t('update_modal_title') ?></span>
+                    </h5>
+                    <button type="button" class="btn-close" id="updateModalCloseBtn" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body py-4">
+                    <!-- Progress Bar Container -->
+                    <div class="progress mb-3" style="height: 10px; background: rgba(140, 150, 170, 0.15); border-radius: 999px;">
+                        <div id="updateProgressBar" class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar" style="width: 0%; background: #6366F1; transition: width 0.4s ease;"></div>
+                    </div>
+
+                    <!-- Live Status Line -->
+                    <div id="updateStepStatus" class="fw-semibold small text-primary mb-2 d-flex align-items-center gap-2">
+                        <span id="updateSpinner" class="spinner-border spinner-border-sm text-primary"></span>
+                        <span id="updateStepText"><?= I18n::t('update_step_backup') ?></span>
+                    </div>
+
+                    <!-- Collapsible Log Details -->
+                    <div id="updateLogWrapper" class="d-none mt-3">
+                        <div class="text-secondary small fw-semibold mb-1"><?= I18n::t('update_log_title') ?></div>
+                        <div id="updateLogBox" class="p-3 rounded-3 font-monospace text-start" dir="ltr" style="background: rgba(0, 0, 0, 0.45); border: 1px solid var(--tamoza-border); max-height: 140px; overflow-y: auto; font-size: 11.5px; color: #94A3B8; white-space: pre-wrap;"></div>
+                    </div>
+                </div>
+                <div class="modal-footer border-0 pt-0">
+                    <button type="button" class="btn btn-tamoza-subtle btn-sm px-3" id="updateCancelBtn" data-bs-dismiss="modal"><?= I18n::t('cancel_btn') ?></button>
+                    <button type="button" class="btn btn-tamoza-primary btn-sm px-3 d-none" id="updateReloadBtn" onclick="window.location.reload();">
+                        <?= Icon::get('refresh', '', 14) ?>
+                        <span><?= I18n::t('reload_platform_btn') ?></span>
+                    </button>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</div>
+
 <script>
 document.addEventListener('DOMContentLoaded', function () {
+    // 1. Password/Key Visibility Toggles
     const eyeIconSvg = <?= json_encode(Icon::get('eye', '', 16)) ?>;
     const eyeOffIconSvg = <?= json_encode(Icon::get('eye-off', '', 16)) ?>;
 
@@ -252,5 +358,338 @@ document.addEventListener('DOMContentLoaded', function () {
     };
     bindSecretToggle('toggleApiTokenBtn', 'apiTokenField');
     bindSecretToggle('toggleRecoveryKeyBtn', 'recoveryKeyField');
+
+    // 2. Localization context for updates
+    const updateI18n = {
+        stepBackup: <?= json_encode(I18n::t('update_step_backup')) ?>,
+        stepGit: <?= json_encode(I18n::t('update_step_git')) ?>,
+        stepMigration: <?= json_encode(I18n::t('update_step_migration')) ?>,
+        stepIntegrity: <?= json_encode(I18n::t('update_step_integrity')) ?>,
+        stepComplete: <?= json_encode(I18n::t('update_step_complete')) ?>,
+        stepFailed: <?= json_encode(I18n::t('update_step_failed')) ?>,
+        upToDate: <?= json_encode(I18n::t('system_up_to_date')) ?>,
+        checkingLoading: <?= json_encode(I18n::t('checking_updates_loading')) ?>,
+        checkBtnText: <?= json_encode(I18n::t('check_updates_btn')) ?>,
+        checkUpToDateTitle: <?= json_encode(I18n::t('update_check_up_to_date_title')) ?>,
+        checkUpToDateMsg: <?= json_encode(I18n::t('update_check_up_to_date_msg')) ?>,
+        checkAvailableTitle: <?= json_encode(I18n::t('update_check_available_title')) ?>,
+        checkAvailableMsg: <?= json_encode(I18n::t('update_check_available_msg')) ?>,
+        updateNowBtnText: <?= json_encode(I18n::t('update_now_btn')) ?>,
+        dismissBtnText: <?= json_encode(I18n::t('update_dismiss_btn')) ?>,
+        okBtnText: <?= json_encode(I18n::t('ok_btn')) ?>,
+        disabledHint: <?= json_encode(I18n::t('update_disabled_hint')) ?>,
+        hasUpdate: <?= json_encode(!empty($updateInfo['has_update'])) ?>,
+        checkCircleIcon: <?= json_encode(Icon::get('check-circle', '', 28)) ?>,
+        rocketIcon: <?= json_encode(Icon::get('rocket', '', 28)) ?>,
+        rocketIconSmall: <?= json_encode(Icon::get('rocket', '', 15)) ?>,
+        csrfToken: <?= json_encode(Helpers::csrfToken()) ?>,
+        checkUrl: <?= json_encode(Helpers::baseUrl('index.php?action=check_updates')) ?>,
+        applyUrl: <?= json_encode(Helpers::baseUrl('index.php?action=apply_update')) ?>
+    };
+
+    const updateModalEl = document.getElementById('systemUpdateModal');
+    let systemModalInstance = null;
+    if (updateModalEl) {
+        systemModalInstance = new bootstrap.Modal(updateModalEl);
+    }
+
+    const openUpdateModalWithConfirm = () => {
+        if (!systemModalInstance) return;
+        const confirmView = document.getElementById('updateConfirmView');
+        const progressView = document.getElementById('updateProgressView');
+        if (confirmView && progressView) {
+            confirmView.classList.remove('d-none');
+            progressView.classList.add('d-none');
+        }
+        systemModalInstance.show();
+    };
+
+    const renderCheckResultModal = (data) => {
+        const checkStatusModalEl = document.getElementById('checkUpdateStatusModal');
+        if (!checkStatusModalEl) return;
+        const iconWrapper = document.getElementById('checkModalIconWrapper');
+        const titleEl = document.getElementById('checkModalTitle');
+        const msgEl = document.getElementById('checkModalMessage');
+        const actionsEl = document.getElementById('checkModalActions');
+        const checkModal = new bootstrap.Modal(checkStatusModalEl);
+
+        if (data.has_update) {
+            iconWrapper.style.background = 'rgba(99, 102, 241, 0.15)';
+            iconWrapper.style.color = '#818CF8';
+            iconWrapper.innerHTML = updateI18n.rocketIcon;
+            titleEl.textContent = updateI18n.checkAvailableTitle;
+            msgEl.textContent = updateI18n.checkAvailableMsg.replace(':version', 'v' + data.latest);
+            actionsEl.innerHTML = `
+                <button type="button" class="btn btn-tamoza-subtle px-3" data-bs-dismiss="modal">${updateI18n.dismissBtnText}</button>
+                <button type="button" class="btn btn-tamoza-primary px-3 d-inline-flex align-items-center gap-1" id="openUpdateFromCheckBtn">
+                    <span>${updateI18n.updateNowBtnText}</span>
+                </button>
+            `;
+            const openUpdateBtn = document.getElementById('openUpdateFromCheckBtn');
+            if (openUpdateBtn) {
+                openUpdateBtn.addEventListener('click', function () {
+                    checkModal.hide();
+                    openUpdateModalWithConfirm();
+                });
+            }
+        } else {
+            iconWrapper.style.background = 'rgba(16, 185, 129, 0.15)';
+            iconWrapper.style.color = '#10B981';
+            iconWrapper.innerHTML = updateI18n.checkCircleIcon;
+            titleEl.textContent = updateI18n.checkUpToDateTitle;
+            msgEl.textContent = updateI18n.checkUpToDateMsg.replace(':version', 'v' + data.latest);
+            actionsEl.innerHTML = `
+                <button type="button" class="btn btn-tamoza-primary px-4" data-bs-dismiss="modal">${updateI18n.okBtnText}</button>
+            `;
+        }
+        checkModal.show();
+    };
+
+    const syncVersionDisplays = (data) => {
+        updateI18n.hasUpdate = Boolean(data.has_update);
+
+        const latestEl = document.getElementById('updateLatestVersionDisplay');
+        if (latestEl) {
+            latestEl.textContent = 'v' + data.latest;
+            latestEl.className = data.has_update ? 'fs-5 fw-bold font-monospace text-warning' : 'fs-5 fw-bold font-monospace text-success';
+        }
+
+        const badgeWrapper = document.getElementById('updateStatusBadgeWrapper');
+        if (badgeWrapper) {
+            if (data.has_update) {
+                badgeWrapper.innerHTML = '<span id="updateStatusBadge" class="tamoza-badge badge-warning d-inline-flex align-items-center gap-1"><span class="pulse-dot"></span><span>' + <?= json_encode(I18n::t('update_available_badge', ['version' => ':v'])) ?>.replace(':v', 'v' + data.latest) + '</span></span>';
+            } else {
+                badgeWrapper.innerHTML = '<span id="updateStatusBadge" class="tamoza-badge badge-success d-inline-flex align-items-center gap-1">' + <?= json_encode(Icon::get('check-circle', '', 14)) ?> + ' <span>' + updateI18n.upToDate + '</span></span>';
+            }
+        }
+
+        const dateEl = document.getElementById('updateCheckedDateDisplay');
+        if (dateEl) {
+            const now = new Date();
+            const formatted = now.toISOString().slice(0, 16).replace('T', ' ');
+            dateEl.textContent = <?= json_encode(I18n::t('update_checking_hint', ['date' => ':d'])) ?>.replace(':d', formatted);
+        }
+
+        const triggerBtn = document.getElementById('triggerUpdateBtn');
+        if (triggerBtn) {
+            if (data.has_update) {
+                triggerBtn.classList.remove('btn-tamoza-secondary');
+                triggerBtn.classList.add('btn-tamoza-primary');
+            } else {
+                triggerBtn.classList.remove('btn-tamoza-primary');
+                triggerBtn.classList.add('btn-tamoza-secondary');
+            }
+        }
+    };
+
+    // 3. AJAX Check for Updates Button
+    const checkBtn = document.getElementById('checkUpdatesBtn');
+    if (checkBtn) {
+        checkBtn.addEventListener('click', function (e) {
+            e.preventDefault();
+            const iconEl = document.getElementById('checkUpdatesIcon');
+            const textEl = document.getElementById('checkUpdatesText');
+            checkBtn.disabled = true;
+            if (iconEl) iconEl.innerHTML = '<span class="spinner-border spinner-border-sm"></span>';
+            if (textEl) textEl.textContent = updateI18n.checkingLoading;
+
+            fetch(updateI18n.checkUrl, {
+                headers: { 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'application/json' }
+            })
+            .then(res => res.json())
+            .then(data => {
+                checkBtn.disabled = false;
+                if (iconEl) iconEl.innerHTML = <?= json_encode(Icon::get('refresh', '', 14)) ?>;
+                if (textEl) textEl.textContent = updateI18n.checkBtnText;
+
+                syncVersionDisplays(data);
+                renderCheckResultModal(data);
+            })
+            .catch(() => {
+                checkBtn.disabled = false;
+                if (iconEl) iconEl.innerHTML = <?= json_encode(Icon::get('refresh', '', 14)) ?>;
+                if (textEl) textEl.textContent = updateI18n.checkBtnText;
+            });
+        });
+    }
+
+    // 4. Trigger Update Flow: Always active, checks first then proceeds or informs
+    const triggerUpdateBtn = document.getElementById('triggerUpdateBtn');
+    if (triggerUpdateBtn) {
+        triggerUpdateBtn.addEventListener('click', function (e) {
+            e.preventDefault();
+            const iconEl = document.getElementById('triggerUpdateIcon');
+            const textEl = document.getElementById('triggerUpdateText');
+
+            triggerUpdateBtn.disabled = true;
+            if (iconEl) iconEl.innerHTML = '<span class="spinner-border spinner-border-sm"></span>';
+            if (textEl) textEl.textContent = updateI18n.checkingLoading;
+
+            fetch(updateI18n.checkUrl, {
+                headers: { 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'application/json' }
+            })
+            .then(res => res.json())
+            .then(data => {
+                triggerUpdateBtn.disabled = false;
+                if (iconEl) iconEl.innerHTML = updateI18n.rocketIconSmall;
+                if (textEl) textEl.textContent = updateI18n.updateNowBtnText;
+
+                syncVersionDisplays(data);
+
+                if (data.has_update) {
+                    // Update exists -> Show confirmation modal
+                    openUpdateModalWithConfirm();
+                } else {
+                    // No update -> Show up-to-date modal immediately
+                    renderCheckResultModal(data);
+                }
+            })
+            .catch(() => {
+                triggerUpdateBtn.disabled = false;
+                if (iconEl) iconEl.innerHTML = updateI18n.rocketIconSmall;
+                if (textEl) textEl.textContent = updateI18n.updateNowBtnText;
+            });
+        });
+    }
+
+    // 5. Start Update Execution after User Confirmation
+    const startUpdateExecutionBtn = document.getElementById('startUpdateExecutionBtn');
+    if (startUpdateExecutionBtn) {
+        startUpdateExecutionBtn.addEventListener('click', function () {
+            const confirmView = document.getElementById('updateConfirmView');
+            const progressView = document.getElementById('updateProgressView');
+            if (confirmView) confirmView.classList.add('d-none');
+            if (progressView) progressView.classList.remove('d-none');
+
+            const pBar = document.getElementById('updateProgressBar');
+            const stepText = document.getElementById('updateStepText');
+            const spinner = document.getElementById('updateSpinner');
+            const logWrapper = document.getElementById('updateLogWrapper');
+            const logBox = document.getElementById('updateLogBox');
+            const cancelBtn = document.getElementById('updateCancelBtn');
+            const reloadBtn = document.getElementById('updateReloadBtn');
+            const closeBtn = document.getElementById('updateModalCloseBtn');
+
+            // Reset initial state
+            pBar.className = 'progress-bar progress-bar-striped progress-bar-animated';
+            pBar.style.background = '#6366F1';
+            pBar.style.width = '15%';
+            stepText.textContent = updateI18n.stepBackup;
+            stepText.className = 'fw-semibold small text-primary';
+            spinner.className = 'spinner-border spinner-border-sm text-primary';
+            spinner.classList.remove('d-none');
+            logWrapper.classList.add('d-none');
+            cancelBtn.classList.remove('d-none');
+            cancelBtn.disabled = true;
+            if (closeBtn) closeBtn.disabled = true;
+            reloadBtn.classList.add('d-none');
+
+            // Smooth progress step transitions while backend performs work
+            setTimeout(() => {
+                if (pBar.style.width === '15%') {
+                    pBar.style.width = '45%';
+                    stepText.textContent = updateI18n.stepGit;
+                }
+            }, 600);
+
+            setTimeout(() => {
+                if (pBar.style.width === '45%') {
+                    pBar.style.width = '70%';
+                    stepText.textContent = updateI18n.stepMigration;
+                }
+            }, 1200);
+
+            setTimeout(() => {
+                if (pBar.style.width === '70%') {
+                    pBar.style.width = '88%';
+                    stepText.textContent = updateI18n.stepIntegrity;
+                }
+            }, 1800);
+
+            const formData = new FormData();
+            formData.append('csrf_token', updateI18n.csrfToken);
+
+            fetch(updateI18n.applyUrl, {
+                method: 'POST',
+                body: formData,
+                headers: { 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'application/json' }
+            })
+            .then(res => res.json())
+            .then(data => {
+                cancelBtn.disabled = false;
+                if (closeBtn) closeBtn.disabled = false;
+                if (data.success) {
+                    pBar.style.width = '100%';
+                    pBar.style.background = '#10B981';
+                    pBar.classList.remove('progress-bar-animated');
+                    spinner.classList.add('d-none');
+                    stepText.textContent = updateI18n.stepComplete;
+                    stepText.className = 'fw-bold small text-success';
+
+                    if (data.log && data.log.length > 0) {
+                        logBox.textContent = data.log.join('\n');
+                        logWrapper.classList.remove('d-none');
+                    }
+
+                    cancelBtn.classList.add('d-none');
+                    reloadBtn.classList.remove('d-none');
+                } else if (data.already_latest) {
+                    // System is already up to date: no update was needed
+                    pBar.style.width = '100%';
+                    pBar.style.background = '#3B82F6';
+                    pBar.classList.remove('progress-bar-animated');
+                    spinner.classList.add('d-none');
+                    stepText.textContent = data.message;
+                    stepText.className = 'fw-bold small text-info';
+
+                    if (data.log && data.log.length > 0) {
+                        logBox.textContent = data.log.join('\n');
+                        logWrapper.classList.remove('d-none');
+                    }
+                    cancelBtn.classList.remove('d-none');
+                    cancelBtn.disabled = false;
+                } else {
+                    pBar.style.width = '100%';
+                    pBar.style.background = '#EF4444';
+                    pBar.classList.remove('progress-bar-animated');
+                    spinner.classList.add('d-none');
+                    stepText.textContent = data.message || updateI18n.stepFailed;
+                    stepText.className = 'fw-bold small text-danger';
+
+                    if (data.log && data.log.length > 0) {
+                        logBox.textContent = data.log.join('\n');
+                        logWrapper.classList.remove('d-none');
+                    }
+                }
+            })
+            .catch(err => {
+                cancelBtn.disabled = false;
+                if (closeBtn) closeBtn.disabled = false;
+                pBar.style.width = '100%';
+                pBar.style.background = '#EF4444';
+                pBar.classList.remove('progress-bar-animated');
+                spinner.classList.add('d-none');
+                stepText.textContent = updateI18n.stepFailed + ' ' + (err.message || '');
+                stepText.className = 'fw-bold small text-danger';
+            });
+        });
+    }
+
+    // 6. Seamless Automatic Check on Page Load
+    const runAutoCheckOnPageLoad = () => {
+        fetch(updateI18n.checkUrl, {
+            headers: { 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'application/json' }
+        })
+        .then(res => res.json())
+        .then(data => {
+            syncVersionDisplays(data);
+        })
+        .catch(() => {
+            // Silently fallback without disrupting the user
+        });
+    };
+
+    // Trigger auto-check smoothly 250ms after page loads
+    setTimeout(runAutoCheckOnPageLoad, 250);
 });
 </script>

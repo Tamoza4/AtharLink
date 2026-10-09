@@ -185,11 +185,11 @@ class Tracker
 
         $clickInsertStmt = $pdo->prepare("
             INSERT INTO clicks (
-                link_id, is_unique, ip_hash, country_code,
+                link_id, is_unique, ip_address, ip_hash, country_code,
                 referrer, referrer_domain, device_type, browser,
                 platform, user_agent, clicked_at
             ) VALUES (
-                :lid, :uniq, :iph, :country,
+                :lid, :uniq, :ip, :iph, :country,
                 :ref, :domain, :dev, :browser,
                 :platform, :ua, CURRENT_TIMESTAMP
             )
@@ -197,6 +197,7 @@ class Tracker
         $clickInsertStmt->execute([
             ':lid'      => $linkId,
             ':uniq'     => $isUnique,
+            ':ip'       => $clientIp,
             ':iph'      => $ipHash,
             ':country'  => $countryCode,
             ':ref'      => $rawReferrer,

@@ -103,6 +103,43 @@ if ($action === 'check_slug') {
     Helpers::json(['available' => $isAvailable]);
 }
 
+// Public Link Count Endpoint (CORS enabled, Zero token required)
+if ($action === 'get_count' || $action === 'public_counter') {
+    header('Access-Control-Allow-Origin: *');
+    header('Access-Control-Allow-Methods: GET, OPTIONS');
+    header('Access-Control-Allow-Headers: Content-Type');
+    if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
+        exit;
+    }
+
+    $slug = trim((string)($_GET['slug'] ?? ''));
+    $type = ($_GET['type'] ?? 'unique') === 'all' ? 'all' : 'unique';
+    $link = LinkManager::findBySlug($slug);
+    if (!$link) {
+        Helpers::json(['success' => false, 'error' => 'Link not found'], 404);
+    }
+    $pdo = Database::getConnection();
+    $stmt = $pdo->prepare("
+        SELECT 
+            COUNT(id) AS total_clicks,
+            COALESCE(SUM(CASE WHEN is_unique = 1 THEN 1 ELSE 0 END), 0) AS unique_clicks
+        FROM clicks 
+        WHERE link_id = :lid
+    ");
+    $stmt->execute([':lid' => $link['id']]);
+    $stats = $stmt->fetch();
+    $total = (int)($stats['total_clicks'] ?? 0) + (int)($link['initial_clicks'] ?? 0);
+    $unique = (int)($stats['unique_clicks'] ?? 0) + (int)($link['initial_unique_clicks'] ?? 0);
+
+    Helpers::json([
+        'success'       => true,
+        'slug'          => $slug,
+        'clicks'        => $type === 'all' ? $total : $unique,
+        'total_clicks'  => $total,
+        'unique_clicks' => $unique
+    ]);
+}
+
 // Login Handling
 if ($action === 'login') {
     if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -444,6 +481,13 @@ if ($action === 'check_updates') {
     if (Helpers::isAjax()) {
         Helpers::json($result);
     }
+    if (!empty($result['error'])) {
+        $_SESSION['flash_error'] = I18n::t('update_failed_flash', ['error' => $result['error']]);
+    } elseif (!empty($result['has_update'])) {
+        $_SESSION['flash_success'] = I18n::t('update_available_badge', ['version' => 'v' . $result['latest']]);
+    } else {
+        $_SESSION['flash_success'] = I18n::t('system_up_to_date');
+    }
     header('Location: ' . Helpers::baseUrl('index.php?page=settings'));
     exit;
 }
@@ -451,11 +495,19 @@ if ($action === 'check_updates') {
 // Apply 1-Click Update
 if ($action === 'apply_update' && $_SERVER['REQUEST_METHOD'] === 'POST') {
     if (!Helpers::verifyCsrf($_POST['csrf_token'] ?? '')) {
+        if (Helpers::isAjax()) {
+            Helpers::json(['success' => false, 'message' => I18n::t('csrf_invalid')], 403);
+        }
         $_SESSION['flash_error'] = I18n::t('csrf_invalid');
     } else {
         $res = Updater::applyUpdate();
+        if (Helpers::isAjax()) {
+            Helpers::json($res);
+        }
         if ($res['success']) {
             $_SESSION['flash_success'] = $res['message'];
+        } elseif (!empty($res['already_latest'])) {
+            $_SESSION['flash_info'] = $res['message'];
         } else {
             $_SESSION['flash_error'] = I18n::t('update_failed_flash', ['error' => $res['message']]);
         }

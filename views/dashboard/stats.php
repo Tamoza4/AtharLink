@@ -39,6 +39,14 @@ $trackUrl = Helpers::trackingUrl($link['slug']);
             <span><?= I18n::t('qr_code_btn') ?></span>
         </button>
 
+        <button type="button" class="btn btn-tamoza-secondary d-inline-flex align-items-center gap-2" data-bs-toggle="modal" data-bs-target="#embedCounterModal"
+            data-slug="<?= Helpers::e($link['slug']) ?>"
+            data-total-clicks="<?= (int)$stats['total_clicks'] ?>"
+            data-unique-clicks="<?= (int)$stats['unique_clicks'] ?>">
+            <?= Icon::get('code', '', 15) ?>
+            <span><?= I18n::t('embed_counter_btn') ?></span>
+        </button>
+
         <button type="button" class="btn btn-tamoza-secondary d-inline-flex align-items-center gap-2" id="exportSingleLinkImageBtn">
             <?= Icon::get('image', '', 15) ?>
             <span><?= I18n::t('export_image_btn') ?></span>
@@ -199,7 +207,7 @@ $trackUrl = Helpers::trackingUrl($link['slug']);
         <table class="table table-hover align-middle mb-0 small">
             <thead>
                 <tr>
-                    <th><?= I18n::t('col_ip_hash') ?></th>
+                    <th><?= I18n::t('col_ip_address') ?></th>
                     <th><?= I18n::t('col_country') ?></th>
                     <th><?= I18n::t('col_click_type') ?></th>
                     <th><?= I18n::t('col_browser_os') ?></th>
@@ -213,7 +221,7 @@ $trackUrl = Helpers::trackingUrl($link['slug']);
                 <?php else: ?>
                     <?php foreach ($stats['recent_logs'] as $log): ?>
                         <tr>
-                            <td><code><?= substr(Helpers::e($log['ip_hash']), 0, 14) ?>...</code></td>
+                            <td><code class="text-primary fw-medium"><?= Helpers::e(!empty($log['ip_address']) ? $log['ip_address'] : ($log['ip_hash'] ? substr($log['ip_hash'], 0, 14) . '...' : '—')) ?></code></td>
                             <td><span class="tamoza-badge badge-indigo"><?= Helpers::e($log['country_code']) ?></span></td>
                             <td>
                                 <?= (int)$log['is_unique'] === 1 ? '<span class="tamoza-badge badge-success">' . I18n::t('type_unique_badge') . '</span>' : '<span class="tamoza-badge badge-muted">' . I18n::t('type_repeat_badge') . '</span>' ?>

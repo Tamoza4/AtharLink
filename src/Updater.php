@@ -13,16 +13,16 @@ use Throwable;
  */
 class Updater
 {
-    public const DEFAULT_REPO = 'tamoza/AtharLink';
+    public const DEFAULT_REPO = 'Tamoza4/AtharLink';
     private const CACHE_KEY = 'update_check_cache';
-    private const CACHE_TTL = 3600; // 1 hour cache
+    private const CACHE_TTL = 300; // 5 minutes cache (fresh version detection)
 
     /**
      * Get currently installed application version
      */
     public static function getCurrentVersion(): string
     {
-        return defined('APP_VERSION') ? APP_VERSION : '1.0.0';
+        return defined('APP_VERSION') ? APP_VERSION : '1.0.1';
     }
 
     /**
@@ -115,10 +115,26 @@ class Updater
      * 4. Verifies database integrity
      * 5. Clears OPcache
      */
-    public static function applyUpdate(): array
+    public static function applyUpdate(bool $force = false): array
     {
         $log = [];
-        $log[] = 'Update initiated: ' . date('Y-m-d H:i:s T');
+        $log[] = 'Update process initiated: ' . date('Y-m-d H:i:s T');
+
+        // 0. Verify if an update is actually available
+        $check = self::check(false);
+        if (!$force && empty($check['has_update'])) {
+            $currentVer = 'v' . ($check['current'] ?? APP_VERSION);
+            $latestVer  = 'v' . ($check['latest'] ?? APP_VERSION);
+            $log[] = "Check verified: Current version {$currentVer} is identical to latest available {$latestVer}.";
+            $log[] = 'Update aborted: Platform is already on the latest version.';
+
+            return [
+                'success'        => false,
+                'already_latest' => true,
+                'message'        => I18n::t('update_error_already_latest', ['version' => $latestVer]),
+                'log'            => $log
+            ];
+        }
 
         // 1. Permission check
         if (!is_writable(STORAGE_DIR)) {
@@ -192,8 +208,8 @@ class Updater
         Database::setSetting(self::CACHE_KEY, '');
 
         $msg = $gitPulled
-            ? 'تم تحديث ملفات المنصة وقاعدة البيانات بنجاح!'
-            : 'تم أخذ نسخة احتياطية وتطبيق ترقيات قاعدة البيانات بنجاح!';
+            ? I18n::t('update_success_git')
+            : I18n::t('update_success_db');
 
         return [
             'success' => true,

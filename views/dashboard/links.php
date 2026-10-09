@@ -84,9 +84,7 @@ $activeFilter = $_GET['is_active'] ?? '';
         <table class="table table-hover align-middle mb-0">
             <thead>
                 <tr>
-                    <th><?= Helpers::e(I18n::t('col_slug')) ?></th>
-                    <th><?= Helpers::e(I18n::t('col_target')) ?></th>
-                    <th><?= Helpers::e(I18n::t('col_type')) ?></th>
+                    <th><?= Helpers::e(I18n::t('col_link_details')) ?></th>
                     <th class="text-center"><?= Helpers::e(I18n::t('col_clicks')) ?></th>
                     <th class="text-center"><?= Helpers::e(I18n::t('col_status')) ?></th>
                     <th><?= Helpers::e(I18n::t('col_created')) ?></th>
@@ -96,7 +94,7 @@ $activeFilter = $_GET['is_active'] ?? '';
             <tbody>
                 <?php if (empty($links)): ?>
                     <tr>
-                        <td colspan="7" class="text-center py-5 text-secondary">
+                        <td colspan="5" class="text-center py-5 text-secondary">
                             <div class="display-6 mb-2 text-indigo"><?= Icon::get('link-2', '', 40) ?></div>
                             <p class="mb-3"><?= Helpers::e(I18n::t('no_links_found')) ?></p>
                             <button type="button" class="btn btn-tamoza-primary d-inline-flex align-items-center gap-2" data-bs-toggle="modal" data-bs-target="#createLinkModal">
@@ -113,81 +111,97 @@ $activeFilter = $_GET['is_active'] ?? '';
                             $isLimitReached = !empty($l['click_limit']) && (int)$l['total_clicks'] >= (int)$l['click_limit'];
                         ?>
                         <tr>
-                            <!-- Slug & Short URL -->
+                            <!-- Slug, Title & Destination URL -->
                             <td>
-                                <div class="fw-bold fs-6">
-                                    <a href="<?= Helpers::e($trackUrl) ?>" target="_blank" class="text-decoration-none text-primary">
-                                        /<?= Helpers::e($l['slug']) ?>
-                                    </a>
-                                    <?php if (!empty($l['password_hash']) || !empty($l['password_plain'])): ?>
-                                        <span class="tamoza-badge badge-warning ms-1" title="<?= !empty($l['password_plain']) ? Helpers::e(I18n::t('password_input_label')) . ': ' . Helpers::e($l['password_plain']) : Helpers::e(I18n::t('password_status_protected')) ?>">
-                                            <?= Icon::get('key', '', 12) ?>
-                                        </span>
-                                    <?php endif; ?>
+                                <div class="d-flex flex-column gap-1">
+                                    <div class="d-flex align-items-center gap-2 flex-wrap">
+                                        <a href="<?= Helpers::e($trackUrl) ?>" target="_blank" class="fw-bold fs-6 text-decoration-none text-primary">
+                                            /<?= Helpers::e($l['slug']) ?>
+                                        </a>
+                                        <?php if (!empty($l['title'])): ?>
+                                            <span class="text-secondary small fw-medium text-truncate" style="max-width: 280px;" title="<?= Helpers::e($l['title']) ?>">
+                                                <?= Helpers::e($l['title']) ?>
+                                            </span>
+                                        <?php endif; ?>
+                                        <?php if (!empty($l['password_hash']) || !empty($l['password_plain'])): ?>
+                                            <span class="tamoza-badge badge-warning" title="<?= !empty($l['password_plain']) ? Helpers::e(I18n::t('password_input_label')) . ': ' . Helpers::e($l['password_plain']) : Helpers::e(I18n::t('password_status_protected')) ?>">
+                                                <?= Icon::get('key', '', 11) ?>
+                                            </span>
+                                        <?php endif; ?>
+                                    </div>
+                                    <div class="d-flex align-items-center gap-1 text-secondary small">
+                                        <span class="opacity-50 select-none" style="font-size: 11px;">↳</span>
+                                        <a href="<?= Helpers::e($l['target_url']) ?>" target="_blank" rel="noopener noreferrer" class="text-secondary text-decoration-none d-inline-flex align-items-center gap-1 text-truncate" style="max-width: 480px;" title="<?= Helpers::e($l['target_url']) ?>">
+                                            <span class="text-truncate"><?= Helpers::e($l['target_url']) ?></span>
+                                            <span class="opacity-50"><?= Icon::get('external-link', '', 11) ?></span>
+                                        </a>
+                                    </div>
                                 </div>
-                                <?php if (!empty($l['title'])): ?>
-                                    <div class="text-secondary small"><?= Helpers::e($l['title']) ?></div>
-                                <?php endif; ?>
-                            </td>
-
-                            <!-- Target URL -->
-                            <td>
-                                <a href="<?= Helpers::e($l['target_url']) ?>" target="_blank" rel="noopener noreferrer" class="text-secondary text-decoration-none d-inline-flex align-items-center gap-1 text-truncate" style="max-width: 280px;" title="<?= Helpers::e($l['target_url']) ?>">
-                                    <span class="text-truncate"><?= Helpers::e($l['target_url']) ?></span>
-                                    <?= Icon::get('external-link', '', 12) ?>
-                                </a>
-                            </td>
-
-                            <!-- Redirect Type -->
-                            <td>
-                                <?php if ((int)$l['redirect_type'] === 301): ?>
-                                    <span class="tamoza-badge badge-indigo"><?= Helpers::e(I18n::t('type_permanent')) ?></span>
-                                <?php elseif ((int)$l['redirect_type'] === 2): ?>
-                                    <span class="tamoza-badge badge-warning"><?= Helpers::e(I18n::t('type_download')) ?></span>
-                                <?php else: ?>
-                                    <span class="tamoza-badge badge-muted"><?= Helpers::e(I18n::t('type_temporary')) ?></span>
-                                <?php endif; ?>
                             </td>
 
                             <!-- Clicks Counter -->
-                            <td class="text-center">
-                                <span class="fw-bold fs-6"><?= number_format($l['total_clicks']) ?></span>
-                                <span class="text-secondary small">/</span>
-                                <span class="text-success small fw-medium"><?= number_format($l['unique_clicks']) ?></span>
-                                <?php if (!empty($l['initial_clicks'])): ?>
-                                    <div class="text-secondary" style="font-size: 11px;">(<?= (int)$l['initial_clicks'] ?> +)</div>
-                                <?php endif; ?>
+                            <td class="text-center text-nowrap">
+                                <div class="d-inline-flex flex-column align-items-center gap-1">
+                                    <span class="fw-bold fs-6"><?= number_format($l['total_clicks']) ?></span>
+                                    <span class="text-success small fw-medium" style="font-size: 11px;" title="<?= Helpers::e(I18n::t('kpi_unique_clicks')) ?>">
+                                        <?= number_format($l['unique_clicks']) ?> <?= Helpers::e(I18n::t('type_unique_badge')) ?>
+                                    </span>
+                                    <?php if (!empty($l['initial_clicks'])): ?>
+                                        <span class="text-secondary opacity-75" style="font-size: 10px;">
+                                            (<?= number_format((int)$l['initial_clicks']) ?> +)
+                                        </span>
+                                    <?php endif; ?>
+                                </div>
                             </td>
 
-                            <!-- Status Badge -->
-                            <td class="text-center">
-                                <?php if ($isExpired): ?>
-                                    <span class="tamoza-badge badge-danger"><?= Helpers::e(I18n::t('status_expired')) ?></span>
-                                <?php elseif ($isLimitReached): ?>
-                                    <span class="tamoza-badge badge-warning"><?= Helpers::e(I18n::t('status_limit_reached')) ?></span>
-                                <?php elseif ((int)$l['is_active'] === 1): ?>
-                                    <span class="tamoza-badge badge-success"><?= Helpers::e(I18n::t('status_active')) ?></span>
-                                <?php else: ?>
-                                    <span class="tamoza-badge badge-muted"><?= Helpers::e(I18n::t('status_paused')) ?></span>
-                                <?php endif; ?>
+                            <!-- Status & Redirect Type -->
+                            <td class="text-center text-nowrap">
+                                <div class="d-inline-flex flex-column align-items-center gap-1">
+                                    <?php if ($isExpired): ?>
+                                        <span class="tamoza-badge badge-danger"><?= Helpers::e(I18n::t('status_expired')) ?></span>
+                                    <?php elseif ($isLimitReached): ?>
+                                        <span class="tamoza-badge badge-warning"><?= Helpers::e(I18n::t('status_limit_reached')) ?></span>
+                                    <?php elseif ((int)$l['is_active'] === 1): ?>
+                                        <span class="tamoza-badge badge-success"><?= Helpers::e(I18n::t('status_active')) ?></span>
+                                    <?php else: ?>
+                                        <span class="tamoza-badge badge-muted"><?= Helpers::e(I18n::t('status_paused')) ?></span>
+                                    <?php endif; ?>
+
+                                    <?php if ((int)$l['redirect_type'] === 301): ?>
+                                        <span class="tamoza-badge badge-indigo" style="font-size: 10px; padding: 1px 6px;" title="<?= Helpers::e(I18n::t('type_permanent')) ?>">301</span>
+                                    <?php elseif ((int)$l['redirect_type'] === 2): ?>
+                                        <span class="tamoza-badge badge-warning" style="font-size: 10px; padding: 1px 6px;" title="<?= Helpers::e(I18n::t('type_download')) ?>"><?= Helpers::e(I18n::t('type_download')) ?></span>
+                                    <?php else: ?>
+                                        <span class="tamoza-badge badge-muted" style="font-size: 10px; padding: 1px 6px;" title="<?= Helpers::e(I18n::t('type_temporary')) ?>">302</span>
+                                    <?php endif; ?>
+                                </div>
                             </td>
 
                             <!-- Created Date -->
-                            <td class="text-secondary small">
+                            <td class="text-secondary small text-nowrap">
                                 <?= date('Y-m-d', strtotime($l['created_at'])) ?>
                             </td>
 
                             <!-- Actions -->
-                            <td class="text-end">
+                            <td class="text-end text-nowrap">
                                 <div class="d-inline-flex gap-1 align-items-center">
                                     <!-- Copy Button -->
                                     <button type="button" class="btn btn-tamoza-subtle" data-copy-url="<?= Helpers::e($trackUrl) ?>" title="<?= Helpers::e(I18n::t('copy_url_tooltip')) ?>">
                                         <?= Icon::get('copy', '', 15) ?>
                                     </button>
 
-                                    <!-- QR Code Button -->
+                                     <!-- QR Code Button -->
                                     <button type="button" class="btn btn-tamoza-subtle" data-bs-toggle="modal" data-bs-target="#qrCodeModal" data-qr-url="<?= Helpers::e($trackUrl) ?>" data-qr-title="<?= Helpers::e($l['slug']) ?>" title="<?= Helpers::e(I18n::t('qr_code_title')) ?>">
                                         <?= Icon::get('qr-code', '', 15) ?>
+                                    </button>
+
+                                    <!-- Embed Counter Button -->
+                                    <button type="button" class="btn btn-tamoza-subtle" data-bs-toggle="modal" data-bs-target="#embedCounterModal" 
+                                        data-slug="<?= Helpers::e($l['slug']) ?>" 
+                                        data-total-clicks="<?= (int)$l['total_clicks'] ?>" 
+                                        data-unique-clicks="<?= (int)$l['unique_clicks'] ?>" 
+                                        title="<?= Helpers::e(I18n::t('embed_counter_btn')) ?>">
+                                        <?= Icon::get('code', '', 15) ?>
                                     </button>
 
                                     <!-- Detailed Stats -->
@@ -208,6 +222,15 @@ $activeFilter = $_GET['is_active'] ?? '';
                                     <div class="dropdown d-inline-block">
                                         <button type="button" class="btn btn-tamoza-subtle dropdown-toggle dropdown-toggle-split" data-bs-toggle="dropdown" data-bs-display="static" aria-expanded="false" title="<?= Helpers::e(I18n::t('col_actions')) ?>"></button>
                                         <ul class="dropdown-menu dropdown-menu-end shadow border-0 py-2">
+                                            <li>
+                                                <button class="dropdown-item py-2 text-indigo d-flex align-items-center gap-2" type="button" data-bs-toggle="modal" data-bs-target="#embedCounterModal" 
+                                                    data-slug="<?= Helpers::e($l['slug']) ?>" 
+                                                    data-total-clicks="<?= (int)$l['total_clicks'] ?>" 
+                                                    data-unique-clicks="<?= (int)$l['unique_clicks'] ?>">
+                                                    <?= Icon::get('code', '', 14) ?>
+                                                    <span><?= Helpers::e(I18n::t('embed_counter_btn')) ?></span>
+                                                </button>
+                                            </li>
                                             <li>
                                                 <button class="dropdown-item py-2 d-flex align-items-center gap-2" type="button" data-bs-toggle="modal" data-bs-target="#editLinkModal" 
                                                     data-link-id="<?= $l['id'] ?>"

@@ -901,6 +901,44 @@ option {
     font-size: 14px;
 }
 
+.tamoza-footer-social {
+    display: flex;
+    align-items: center;
+    gap: var(--tamoza-spacing-8);
+}
+
+.tamoza-footer-social-link {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    border-radius: var(--tamoza-radius-sm);
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid var(--tamoza-border);
+    color: var(--tamoza-text-muted);
+    text-decoration: none;
+    transition: all var(--tamoza-transition-micro);
+}
+
+.tamoza-footer-social-link:hover {
+    color: #FFFFFF;
+    background: rgba(99, 102, 241, 0.15);
+    border-color: rgba(99, 102, 241, 0.4);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(99, 102, 241, 0.2);
+}
+
+[data-bs-theme="light"] .tamoza-footer-social-link {
+    background: rgba(0, 0, 0, 0.03);
+}
+
+[data-bs-theme="light"] .tamoza-footer-social-link:hover {
+    color: var(--tamoza-indigo);
+    background: rgba(99, 102, 241, 0.1);
+    border-color: var(--tamoza-indigo);
+}
+
 .tamoza-footer-status {
     display: flex;
     align-items: center;
