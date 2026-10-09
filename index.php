@@ -243,9 +243,10 @@ if (!Auth::check()) {
         Helpers::json(['success' => false, 'message' => I18n::t('session_expired')], 401);
     }
 
-    // 3. Check if guest homepage / unauthenticated redirection is configured
+    // 3. Check if guest homepage / unauthenticated redirection is enabled and configured
+    $redirectEnabled = Database::getSetting('guest_redirect_enabled', '0') === '1';
     $guestRedirect = Database::getSetting('guest_redirect_url', '');
-    if (!empty($guestRedirect)) {
+    if ($redirectEnabled && !empty($guestRedirect)) {
         $targetHost = parse_url($guestRedirect, PHP_URL_HOST);
         $currentHost = $_SERVER['HTTP_HOST'] ?? '';
         // Prevent redirect loop if target host matches current host
@@ -448,9 +449,13 @@ if ($action === 'save_settings' && $_SERVER['REQUEST_METHOD'] === 'POST') {
         $hours = max(1.0, (float)($_POST['uniqueness_hours'] ?? 24));
         $seconds = (int)round($hours * 3600);
 
-        // Guest Redirection URL validation & saving
-        $guestRedirect = trim((string)($_POST['guest_redirect_url'] ?? ''));
-        if (!empty($guestRedirect)) {
+        // Guest Redirection Feature (Enable Toggle + URL)
+        $redirectEnabled = !empty($_POST['guest_redirect_enabled']) ? '1' : '0';
+        $guestRedirect = isset($_POST['guest_redirect_url'])
+            ? trim((string)$_POST['guest_redirect_url'])
+            : Database::getSetting('guest_redirect_url', '');
+
+        if ($redirectEnabled === '1' && !empty($guestRedirect)) {
             if (!filter_var($guestRedirect, FILTER_VALIDATE_URL) || !preg_match('#^https?://#i', $guestRedirect)) {
                 $_SESSION['flash_error'] = I18n::t('guest_redirect_invalid');
                 header('Location: ' . Helpers::baseUrl('index.php?page=settings'));
@@ -472,14 +477,16 @@ if ($action === 'save_settings' && $_SERVER['REQUEST_METHOD'] === 'POST') {
 
         Database::setSetting('site_title', $title);
         Database::setSetting('uniqueness_window', (string)$seconds);
+        Database::setSetting('guest_redirect_enabled', $redirectEnabled);
         Database::setSetting('guest_redirect_url', $guestRedirect);
         Database::setSetting('admin_login_slug', $adminSlug);
 
         AuditLogger::log('save_settings', 'Updated system settings: ' . $title, [
-            'site_title'         => $title,
-            'uniqueness_hours'   => $hours,
-            'guest_redirect_url' => $guestRedirect,
-            'admin_login_slug'   => $adminSlug
+            'site_title'             => $title,
+            'uniqueness_hours'       => $hours,
+            'guest_redirect_enabled' => $redirectEnabled,
+            'guest_redirect_url'     => $guestRedirect,
+            'admin_login_slug'       => $adminSlug
         ]);
 
         $_SESSION['flash_success'] = I18n::t('settings_saved_success');

@@ -17,6 +17,7 @@ $siteTitle = Database::getSetting('site_title', 'AtharLink');
 $uniquenessWindow = (int)Database::getSetting('uniqueness_window', (string)DEFAULT_UNIQUENESS_WINDOW);
 $hoursWindow = round($uniquenessWindow / 3600, 1);
 $guestRedirectUrl = Database::getSetting('guest_redirect_url', '');
+$guestRedirectEnabled = Database::getSetting('guest_redirect_enabled', !empty($guestRedirectUrl) ? '1' : '0') === '1';
 $adminLoginSlug = Database::getSetting('admin_login_slug', 'admin');
 $updateInfo = Updater::check();
 ?>
@@ -127,14 +128,26 @@ $updateInfo = Updater::check();
                     </h5>
                     <p class="text-secondary small mb-3"><?= I18n::t('security_routing_desc') ?></p>
 
-                    <!-- Guest Redirect URL -->
-                    <div class="mb-3">
-                        <label class="form-label small fw-semibold d-flex align-items-center justify-content-between">
-                            <span><?= I18n::t('guest_redirect_label') ?></span>
-                            <span class="tamoza-badge badge-subtle small"><?= I18n::t('optional_badge') ?></span>
-                        </label>
-                        <input type="url" name="guest_redirect_url" class="form-control tamoza-input" placeholder="https://tamoza.net" value="<?= Helpers::e($guestRedirectUrl) ?>" dir="ltr">
-                        <small class="text-secondary d-block mt-1"><?= I18n::t('guest_redirect_hint') ?></small>
+                    <!-- Guest Redirection Toggle Card -->
+                    <div class="p-3 rounded-4 mb-3" style="background: rgba(99, 102, 241, 0.05); border: 1px solid var(--tamoza-border);">
+                        <div class="form-check form-switch mb-0 d-flex align-items-start gap-2 ps-0">
+                            <input class="form-check-input ms-0 me-2" type="checkbox" name="guest_redirect_enabled" id="guestRedirectToggle" value="1" <?= $guestRedirectEnabled ? 'checked' : '' ?> style="cursor: pointer; min-width: 2.25rem;">
+                            <div>
+                                <label class="form-check-label fw-semibold small d-block mb-1" for="guestRedirectToggle" style="cursor: pointer;">
+                                    <?= I18n::t('guest_redirect_toggle_label') ?>
+                                </label>
+                                <div class="text-secondary small" style="font-size: 12px; line-height: 1.5;"><?= I18n::t('guest_redirect_toggle_hint') ?></div>
+                            </div>
+                        </div>
+
+                        <!-- Target Destination URL Input (shown when switch is ON) -->
+                        <div id="guestRedirectUrlContainer" class="mt-3 pt-3 border-top <?= $guestRedirectEnabled ? '' : 'd-none' ?>" style="border-color: var(--tamoza-border) !important;">
+                            <label class="form-label small fw-semibold" for="guestRedirectUrlInput">
+                                <?= I18n::t('guest_redirect_label') ?>
+                            </label>
+                            <input type="url" id="guestRedirectUrlInput" name="guest_redirect_url" class="form-control tamoza-input" placeholder="https://example.com" value="<?= Helpers::e($guestRedirectUrl) ?>" dir="ltr">
+                            <small class="text-secondary d-block mt-1"><?= I18n::t('guest_redirect_hint') ?></small>
+                        </div>
                     </div>
 
                     <!-- Custom Admin Entrance Slug -->
@@ -513,6 +526,21 @@ document.addEventListener('DOMContentLoaded', function () {
             }).catch(() => {
                 prompt(window.__i18n?.copyManually || 'Copy URL:', fullUrl);
             });
+        });
+    }
+
+    // Guest Redirection Switch Toggle Interaction
+    const redirectToggle = document.getElementById('guestRedirectToggle');
+    const redirectContainer = document.getElementById('guestRedirectUrlContainer');
+    const redirectInput = document.getElementById('guestRedirectUrlInput');
+    if (redirectToggle && redirectContainer) {
+        redirectToggle.addEventListener('change', function () {
+            if (this.checked) {
+                redirectContainer.classList.remove('d-none');
+                if (redirectInput) redirectInput.focus();
+            } else {
+                redirectContainer.classList.add('d-none');
+            }
         });
     }
 
