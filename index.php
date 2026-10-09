@@ -224,6 +224,17 @@ if ($action === 'logout') {
 // 3. AUTHENTICATION ENFORCEMENT
 // ----------------------------------------------------
 if (!Auth::check()) {
+    // If visitor is unauthenticated and requested root home directly with no page/action
+    if (empty($_GET['page']) && empty($_GET['action'])) {
+        header("Location: https://tamoza.net", true, 302);
+        exit;
+    }
+
+    // If an unauthenticated AJAX request was made, return 401 JSON instead of HTML login page
+    if (Helpers::isAjax()) {
+        Helpers::json(['success' => false, 'message' => I18n::t('session_expired')], 401);
+    }
+
     require __DIR__ . '/views/auth/login.php';
     exit;
 }
