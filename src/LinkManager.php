@@ -60,9 +60,8 @@ class LinkManager
             }
         }
 
-        $authLang = in_array($data['auth_lang'] ?? 'auto', ['auto', 'ar', 'en'], true) 
-            ? (string)$data['auth_lang'] 
-            : 'auto';
+        $rawAuthLang = $data['auth_lang'] ?? 'auto';
+        $authLang = in_array($rawAuthLang, ['auto', 'ar', 'en'], true) ? (string)$rawAuthLang : 'auto';
 
         $clickLimit = !empty($data['click_limit']) ? max(1, (int)$data['click_limit']) : null;
         $expiresAt = !empty($data['expires_at']) ? date('Y-m-d H:i:s', strtotime($data['expires_at'])) : null;
@@ -103,7 +102,7 @@ class LinkManager
 
         $newId = (int)$pdo->lastInsertId();
 
-        AuditLogger::log('create_link', 'Created link: ' . $slug, [
+        AuditLogger::log('create_link', 'Created link: ' . $slug . ' ➔ ' . $targetUrl, [
             'id'            => $newId,
             'slug'          => $slug,
             'target_url'    => $targetUrl,
@@ -269,16 +268,113 @@ class LinkManager
             ':id'      => $id
         ]);
 
-        AuditLogger::log('update_link', 'Updated link: ' . $slug, [
+        // Compute exact differences between previous state ($link) and updated state
+        $changes = [];
+        $descHighlights = [];
+
+        if ($link['target_url'] !== $targetUrl) {
+            $changes['target_url'] = [
+                'field' => 'Target URL',
+                'old'   => $link['target_url'],
+                'new'   => $targetUrl
+            ];
+            $descHighlights[] = "Destination: {$link['target_url']} ➔ {$targetUrl}";
+        }
+
+        if ($link['slug'] !== $slug) {
+            $changes['slug'] = [
+                'field' => 'Slug',
+                'old'   => $link['slug'],
+                'new'   => $slug
+            ];
+            $descHighlights[] = "Slug: {$link['slug']} ➔ {$slug}";
+        }
+
+        if ((string)($link['title'] ?? '') !== (string)($title ?? '')) {
+            $changes['title'] = [
+                'field' => 'Title',
+                'old'   => (string)($link['title'] ?? ''),
+                'new'   => (string)($title ?? '')
+            ];
+            $descHighlights[] = "Title updated";
+        }
+
+        if ((int)$link['redirect_type'] !== (int)$redirectType) {
+            $changes['redirect_type'] = [
+                'field' => 'Redirect Type',
+                'old'   => (int)$link['redirect_type'],
+                'new'   => (int)$redirectType
+            ];
+            $descHighlights[] = "Redirect: {$link['redirect_type']} ➔ {$redirectType}";
+        }
+
+        if ((int)$link['is_active'] !== (int)$isActive) {
+            $oldSt = (int)$link['is_active'] === 1 ? 'Active' : 'Paused';
+            $newSt = (int)$isActive === 1 ? 'Active' : 'Paused';
+            $changes['status'] = [
+                'field' => 'Status',
+                'old'   => $oldSt,
+                'new'   => $newSt
+            ];
+            $descHighlights[] = "Status: {$newSt}";
+        }
+
+        if (!empty($data['remove_password']) || (!empty($link['password_hash']) && empty($passwordHash))) {
+            $changes['password'] = [
+                'field' => 'Password Protection',
+                'old'   => 'Protected',
+                'new'   => 'Removed'
+            ];
+            $descHighlights[] = "Password removed";
+        } elseif (!empty($data['password']) && trim((string)$data['password']) !== '') {
+            $changes['password'] = [
+                'field' => 'Password Protection',
+                'old'   => empty($link['password_hash']) ? 'None' : 'Protected',
+                'new'   => 'Updated Password'
+            ];
+            $descHighlights[] = "Password updated";
+        }
+
+        if ((string)($link['click_limit'] ?? '') !== (string)($clickLimit ?? '')) {
+            $changes['click_limit'] = [
+                'field' => 'Click Limit',
+                'old'   => $link['click_limit'] ?? 'Unlimited',
+                'new'   => $clickLimit ?? 'Unlimited'
+            ];
+        }
+
+        if ((string)($link['expires_at'] ?? '') !== (string)($expiresAt ?? '')) {
+            $changes['expires_at'] = [
+                'field' => 'Expiration Date',
+                'old'   => $link['expires_at'] ?? 'Never',
+                'new'   => $expiresAt ?? 'Never'
+            ];
+        }
+
+        $logDesc = 'Updated link: ' . $slug;
+        if (!empty($descHighlights)) {
+            $logDesc .= ' (' . implode(' | ', $descHighlights) . ')';
+        }
+
+        AuditLogger::log('update_link', $logDesc, [
             'id'            => $id,
             'slug'          => $slug,
             'target_url'    => $targetUrl,
-            'title'         => $title,
-            'redirect_type' => $redirectType,
-            'is_active'     => $isActive,
-            'is_protected'  => !empty($passwordHash),
-            'click_limit'   => $clickLimit,
-            'expires_at'    => $expiresAt
+            'changes'       => $changes,
+            'old'           => [
+                'slug'          => $link['slug'],
+                'target_url'    => $link['target_url'],
+                'title'         => $link['title'] ?? '',
+                'redirect_type' => (int)$link['redirect_type'],
+                'is_active'     => (int)$link['is_active'],
+            ],
+            'new'           => [
+                'slug'          => $slug,
+                'target_url'    => $targetUrl,
+                'title'         => $title ?? '',
+                'redirect_type' => $redirectType,
+                'is_active'     => $isActive,
+            ]
         ]);
 
         return ['success' => true, 'message' => I18n::t('link_updated_success')];
@@ -295,7 +391,7 @@ class LinkManager
         $res = $stmt->execute([':id' => $id]);
 
         if ($res && $link) {
-            AuditLogger::log('delete_link', 'Deleted link: ' . $link['slug'], [
+            AuditLogger::log('delete_link', 'Deleted link: ' . $link['slug'] . ' (' . $link['target_url'] . ')', [
                 'id'         => $id,
                 'slug'       => $link['slug'],
                 'target_url' => $link['target_url'],
@@ -318,10 +414,19 @@ class LinkManager
 
         if ($res && $link) {
             $newState = ((int)$link['is_active'] === 1) ? 0 : 1;
-            AuditLogger::log('toggle_link', ($newState ? 'Resumed' : 'Paused') . ' link: ' . $link['slug'], [
-                'id'     => $id,
-                'slug'   => $link['slug'],
-                'status' => $newState ? 'active' : 'paused'
+            $statusWord = $newState ? 'Resumed' : 'Paused';
+            AuditLogger::log('toggle_link', "{$statusWord} link: {$link['slug']} ({$link['target_url']})", [
+                'id'         => $id,
+                'slug'       => $link['slug'],
+                'target_url' => $link['target_url'],
+                'status'     => $newState ? 'active' : 'paused',
+                'changes'    => [
+                    'status' => [
+                        'field' => 'Status',
+                        'old'   => $newState ? 'Paused' : 'Active',
+                        'new'   => $newState ? 'Active' : 'Paused'
+                    ]
+                ]
             ]);
         }
 

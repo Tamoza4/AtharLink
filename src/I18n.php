@@ -614,6 +614,21 @@ class I18n
                 'log_details_title'         => 'تفاصيل العملية الإدارية',
                 'log_metadata'              => 'البيانات المسجلة (Metadata)',
                 'unknown_user'              => 'غير محدد',
+                'diff_changes_title'        => 'التعديلات التي تمت (مقارنة قبل وبعد)',
+                'diff_field'                => 'الحقل',
+                'diff_before'               => 'القيمة السابقة (قبل التعديل)',
+                'diff_after'                => 'القيمة الجديدة (بعد التعديل)',
+                'diff_no_changes'           => 'لا توجد مقارنة تفصيلية مسجلة لهذه العملية.',
+                'field_target_url'          => 'رابط الوجهة (Target URL)',
+                'field_slug'                => 'الاسم اللطيف (Slug)',
+                'field_title'               => 'العنوان (Title)',
+                'field_redirect_type'       => 'نوع إعادة التوجيه',
+                'field_status'              => 'حالة الرابط',
+                'field_is_active'           => 'حالة الرابط',
+                'field_password'            => 'الحماية بكلمة مرور',
+                'field_click_limit'         => 'الحد الأقصى للنقرات',
+                'field_expires_at'          => 'تاريخ انتهاء الصلاحية',
+                'raw_json_toggle'           => 'البيانات البرمجية التفصيلية (JSON)',
 
                 // Footer
                 'copyright'                 => 'جميع الحقوق محفوظة © :year — Tamoza.net'
@@ -1170,6 +1185,21 @@ class I18n
                 'log_details_title'         => 'Audit Event Details',
                 'log_metadata'              => 'Event Metadata (JSON)',
                 'unknown_user'              => 'Unknown',
+                'diff_changes_title'        => 'Recorded Changes (Before vs After)',
+                'diff_field'                => 'Field',
+                'diff_before'               => 'Previous Value (Before)',
+                'diff_after'                => 'New Value (After)',
+                'diff_no_changes'           => 'No comparative changes recorded for this event.',
+                'field_target_url'          => 'Target URL',
+                'field_slug'                => 'Slug',
+                'field_title'               => 'Title',
+                'field_redirect_type'       => 'Redirect Type',
+                'field_status'              => 'Status',
+                'field_is_active'           => 'Status',
+                'field_password'            => 'Password Protection',
+                'field_click_limit'         => 'Click Limit',
+                'field_expires_at'          => 'Expiration Date',
+                'raw_json_toggle'           => 'Technical Details (JSON)',
 
                 // Footer
                 'copyright'                 => 'All Rights Reserved © :year — Tamoza.net'

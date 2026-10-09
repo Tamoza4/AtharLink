@@ -187,9 +187,34 @@ $getActionBadge = function (string $action): array {
                                 </span>
                             </td>
 
-                            <!-- Description -->
+                            <!-- Description & In-line Change Badges -->
                             <td>
-                                <span class="small fw-medium text-body"><?= Helpers::e($log['description']) ?></span>
+                                <?php
+                                $detailsArr = null;
+                                if (!empty($log['details'])) {
+                                    $detailsArr = json_decode($log['details'], true);
+                                }
+                                ?>
+                                <div class="small fw-semibold text-body mb-1">
+                                    <?= Helpers::e($log['description']) ?>
+                                </div>
+                                <?php if (!empty($detailsArr['changes']) && is_array($detailsArr['changes'])): ?>
+                                    <div class="d-flex flex-wrap gap-1.5 mt-1.5">
+                                        <?php foreach ($detailsArr['changes'] as $fKey => $chg): ?>
+                                            <span class="badge bg-body-tertiary border border-secondary-subtle text-secondary py-1 px-2 d-inline-flex align-items-center gap-1.5 fw-normal">
+                                                <strong class="text-body"><?= Helpers::e(I18n::t('field_' . $fKey) !== 'field_' . $fKey ? I18n::t('field_' . $fKey) : ($chg['field'] ?? $fKey)) ?>:</strong>
+                                                <span class="text-danger text-decoration-line-through font-monospace smaller text-truncate" style="max-width: 140px;" title="<?= Helpers::e((string)($chg['old'] ?? '')) ?>"><?= Helpers::e((string)($chg['old'] ?? '—')) ?></span>
+                                                <span class="text-muted">➔</span>
+                                                <span class="text-success fw-semibold font-monospace smaller text-truncate" style="max-width: 140px;" title="<?= Helpers::e((string)($chg['new'] ?? '')) ?>"><?= Helpers::e((string)($chg['new'] ?? '—')) ?></span>
+                                            </span>
+                                        <?php endforeach; ?>
+                                    </div>
+                                <?php elseif (!empty($detailsArr['target_url'])): ?>
+                                    <div class="small text-secondary mt-1 text-truncate" style="max-width: 380px;">
+                                        <span class="badge bg-secondary-subtle text-secondary me-1"><?= Helpers::e(I18n::t('field_target_url')) ?></span>
+                                        <span class="font-monospace smaller text-body"><?= Helpers::e($detailsArr['target_url']) ?></span>
+                                    </div>
+                                <?php endif; ?>
                             </td>
 
                             <!-- IP Address & User Agent -->
@@ -269,9 +294,9 @@ $getActionBadge = function (string $action): array {
     <?php endif; ?>
 </div>
 
-<!-- Modal 1: Event Details Viewer -->
+<!-- Modal 1: Event Details & Visual Diff Comparison Viewer -->
 <div class="modal fade" id="logDetailsModal" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
         <div class="modal-content tamoza-card border-0 shadow-lg">
             <div class="modal-header border-bottom border-secondary-subtle">
                 <div class="d-flex align-items-center gap-2">
@@ -281,29 +306,58 @@ $getActionBadge = function (string $action): array {
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body p-4">
-                <div class="mb-3">
-                    <div class="text-secondary smaller mb-1"><?= Helpers::e(I18n::t('col_log_description')) ?></div>
-                    <div class="fw-semibold text-body" id="modalLogDesc"></div>
+                <!-- Event Header Info Card -->
+                <div class="p-3 rounded-3 bg-body-tertiary border border-secondary-subtle mb-3">
+                    <div class="row g-3 align-items-center">
+                        <div class="col-12 col-md-6">
+                            <div class="text-secondary smaller mb-1"><?= Helpers::e(I18n::t('col_log_description')) ?></div>
+                            <div class="fw-semibold text-body" id="modalLogDesc"></div>
+                        </div>
+                        <div class="col-6 col-md-3">
+                            <div class="text-secondary smaller mb-1"><?= Helpers::e(I18n::t('col_log_admin')) ?></div>
+                            <div class="small fw-semibold" id="modalLogUser"></div>
+                        </div>
+                        <div class="col-6 col-md-3">
+                            <div class="text-secondary smaller mb-1"><?= Helpers::e(I18n::t('col_log_time')) ?></div>
+                            <div class="small font-monospace text-body" id="modalLogTime"></div>
+                        </div>
+                    </div>
                 </div>
 
-                <div class="row g-2 mb-3">
-                    <div class="col-6">
-                        <div class="text-secondary smaller mb-1"><?= Helpers::e(I18n::t('col_log_admin')) ?></div>
-                        <div class="small fw-semibold" id="modalLogUser"></div>
+                <!-- Visual Diff Section: Changes (Before vs After) -->
+                <div id="modalChangesSection" class="mb-3 d-none">
+                    <div class="d-flex align-items-center gap-2 text-primary smaller fw-bold mb-2">
+                        <?= Icon::get('refresh', 'text-primary', 15) ?>
+                        <span><?= Helpers::e(I18n::t('diff_changes_title')) ?></span>
                     </div>
-                    <div class="col-6">
-                        <div class="text-secondary smaller mb-1"><?= Helpers::e(I18n::t('col_log_time')) ?></div>
-                        <div class="small font-monospace" id="modalLogTime"></div>
-                    </div>
+                    <div id="modalChangesContainer" class="d-flex flex-column gap-2"></div>
                 </div>
 
-                <div>
-                    <div class="text-secondary smaller mb-1"><?= Helpers::e(I18n::t('log_metadata')) ?></div>
-                    <pre class="p-3 rounded-3 bg-body-tertiary border border-secondary-subtle smaller mb-0 font-monospace text-wrap" id="modalLogJson" style="max-height: 260px; overflow-y: auto;"></pre>
+                <!-- Info Cards for Non-diff fields (Target URL, Slug, etc.) -->
+                <div id="modalSummarySection" class="mb-3 d-none">
+                    <div class="d-flex align-items-center gap-2 text-secondary smaller fw-bold mb-2">
+                        <?= Icon::get('link-2', 'text-primary', 15) ?>
+                        <span><?= Helpers::e(I18n::t('col_log_description')) ?></span>
+                    </div>
+                    <div id="modalSummaryContainer" class="p-3 rounded-3 bg-body-tertiary border border-secondary-subtle"></div>
+                </div>
+
+                <!-- Collapsible Raw JSON / Technical Metadata -->
+                <div class="border-top border-secondary-subtle pt-3">
+                    <a class="d-flex justify-content-between align-items-center text-decoration-none small text-secondary fw-semibold py-1" data-bs-toggle="collapse" href="#modalJsonCollapse" role="button">
+                        <span class="d-flex align-items-center gap-1.5">
+                            <?= Icon::get('layers', '', 14) ?>
+                            <span><?= Helpers::e(I18n::t('raw_json_toggle')) ?></span>
+                        </span>
+                        <span class="smaller font-monospace text-muted">▼</span>
+                    </a>
+                    <div class="collapse mt-2" id="modalJsonCollapse">
+                        <pre class="p-3 rounded-3 bg-body-tertiary border border-secondary-subtle smaller mb-0 font-monospace text-wrap" id="modalLogJson" style="max-height: 200px; overflow-y: auto;"></pre>
+                    </div>
                 </div>
             </div>
             <div class="modal-footer border-top border-secondary-subtle">
-                <button type="button" class="btn btn-tamoza-secondary" data-bs-dismiss="modal"><?= Helpers::e(I18n::t('close_btn')) ?></button>
+                <button type="button" class="btn btn-tamoza-secondary px-4" data-bs-dismiss="modal"><?= Helpers::e(I18n::t('close_btn')) ?></button>
             </div>
         </div>
     </div>
@@ -377,6 +431,45 @@ document.addEventListener('DOMContentLoaded', function () {
     const modalUser = document.getElementById('modalLogUser');
     const modalTime = document.getElementById('modalLogTime');
     const modalJson = document.getElementById('modalLogJson');
+    const changesSection = document.getElementById('modalChangesSection');
+    const changesContainer = document.getElementById('modalChangesContainer');
+    const summarySection = document.getElementById('modalSummarySection');
+    const summaryContainer = document.getElementById('modalSummaryContainer');
+
+    const i18n = {
+        before: <?= json_encode(I18n::t('diff_before')) ?>,
+        after: <?= json_encode(I18n::t('diff_after')) ?>,
+        field: <?= json_encode(I18n::t('diff_field')) ?>,
+        targetUrl: <?= json_encode(I18n::t('field_target_url')) ?>,
+        slug: <?= json_encode(I18n::t('field_slug')) ?>,
+        title: <?= json_encode(I18n::t('field_title')) ?>,
+        redirectType: <?= json_encode(I18n::t('field_redirect_type')) ?>,
+        status: <?= json_encode(I18n::t('field_status')) ?>,
+        password: <?= json_encode(I18n::t('field_password')) ?>,
+        clickLimit: <?= json_encode(I18n::t('field_click_limit')) ?>,
+        expiresAt: <?= json_encode(I18n::t('field_expires_at')) ?>
+    };
+
+    function escapeHtml(text) {
+        if (text === null || text === undefined) return '';
+        const map = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' };
+        return String(text).replace(/[&<>"']/g, m => map[m]);
+    }
+
+    function getFieldTitle(key, defaultTitle) {
+        const keyMap = {
+            'target_url': i18n.targetUrl,
+            'slug': i18n.slug,
+            'title': i18n.title,
+            'redirect_type': i18n.redirectType,
+            'status': i18n.status,
+            'is_active': i18n.status,
+            'password': i18n.password,
+            'click_limit': i18n.clickLimit,
+            'expires_at': i18n.expiresAt
+        };
+        return keyMap[key] || defaultTitle || key;
+    }
 
     document.querySelectorAll('.view-log-details-btn').forEach(btn => {
         btn.addEventListener('click', function () {
@@ -389,11 +482,95 @@ document.addEventListener('DOMContentLoaded', function () {
             modalUser.textContent = user;
             modalTime.textContent = time;
 
+            changesContainer.innerHTML = '';
+            summaryContainer.innerHTML = '';
+            changesSection.classList.add('d-none');
+            summarySection.classList.add('d-none');
+
+            let parsed = null;
             try {
-                const parsed = JSON.parse(rawDetails);
+                parsed = JSON.parse(rawDetails);
                 modalJson.textContent = JSON.stringify(parsed, null, 2);
             } catch (e) {
                 modalJson.textContent = rawDetails;
+            }
+
+            if (parsed && typeof parsed === 'object') {
+                let changesList = [];
+
+                // 1. Check if structured 'changes' array/object exists
+                if (parsed.changes && typeof parsed.changes === 'object') {
+                    for (const [k, v] of Object.entries(parsed.changes)) {
+                        changesList.push({
+                            fieldKey: k,
+                            label: getFieldTitle(k, v.field),
+                            oldVal: v.old,
+                            newVal: v.new
+                        });
+                    }
+                } else if (parsed.old && parsed.new) {
+                    // Compare old and new objects dynamically
+                    const allKeys = new Set([...Object.keys(parsed.old), ...Object.keys(parsed.new)]);
+                    allKeys.forEach(k => {
+                        if (String(parsed.old[k] ?? '') !== String(parsed.new[k] ?? '')) {
+                            changesList.push({
+                                fieldKey: k,
+                                label: getFieldTitle(k),
+                                oldVal: parsed.old[k],
+                                newVal: parsed.new[k]
+                            });
+                        }
+                    });
+                }
+
+                // Render visual diff cards
+                if (changesList.length > 0) {
+                    changesSection.classList.remove('d-none');
+                    changesList.forEach(item => {
+                        const card = document.createElement('div');
+                        card.className = 'p-3 rounded-3 bg-body-tertiary border border-secondary-subtle';
+                        card.innerHTML = `
+                            <div class="d-flex align-items-center justify-content-between mb-2 pb-1 border-bottom border-secondary-subtle">
+                                <span class="fw-bold small text-body">${escapeHtml(item.label)}</span>
+                            </div>
+                            <div class="row g-2 align-items-stretch">
+                                <div class="col-12 col-md-5">
+                                    <div class="smaller text-secondary fw-semibold mb-1">${escapeHtml(i18n.before)}:</div>
+                                    <div class="p-2.5 rounded-2 bg-danger-subtle text-danger font-monospace smaller text-break border border-danger-subtle h-100 d-flex align-items-center">
+                                        <span class="text-decoration-line-through">${escapeHtml(item.oldVal !== null && item.oldVal !== undefined && item.oldVal !== '' ? String(item.oldVal) : '—')}</span>
+                                    </div>
+                                </div>
+                                <div class="col-12 col-md-2 d-flex align-items-center justify-content-center text-secondary py-1">
+                                    <span class="fs-4">➔</span>
+                                </div>
+                                <div class="col-12 col-md-5">
+                                    <div class="smaller text-success fw-semibold mb-1">${escapeHtml(i18n.after)}:</div>
+                                    <div class="p-2.5 rounded-2 bg-success-subtle text-success font-monospace smaller text-break border border-success-subtle h-100 d-flex align-items-center fw-bold">
+                                        <span>${escapeHtml(item.newVal !== null && item.newVal !== undefined && item.newVal !== '' ? String(item.newVal) : '—')}</span>
+                                    </div>
+                                </div>
+                            </div>
+                        `;
+                        changesContainer.appendChild(card);
+                    });
+                } else if (parsed.target_url) {
+                    // For single target_url records (e.g. create_link, delete_link, or legacy logs)
+                    summarySection.classList.remove('d-none');
+                    summaryContainer.innerHTML = `
+                        <div class="row g-2 align-items-center">
+                            <div class="col-12 col-sm-4">
+                                <span class="text-secondary smaller fw-semibold d-block">${escapeHtml(i18n.slug)}</span>
+                                <span class="badge bg-primary-subtle text-primary font-monospace mt-1 px-2.5 py-1.5">${escapeHtml(parsed.slug || '—')}</span>
+                            </div>
+                            <div class="col-12 col-sm-8">
+                                <span class="text-secondary smaller fw-semibold d-block">${escapeHtml(i18n.targetUrl)}</span>
+                                <a href="${escapeHtml(parsed.target_url)}" target="_blank" class="font-monospace small text-primary text-break text-decoration-none d-inline-block mt-1">
+                                    ${escapeHtml(parsed.target_url)}
+                                </a>
+                            </div>
+                        </div>
+                    `;
+                }
             }
 
             detailsModal.show();
