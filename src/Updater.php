@@ -166,8 +166,8 @@ class Updater
         if (is_dir($gitDir) && function_exists('exec')) {
             $output = [];
             $code = 0;
-            // Restore any modified tracked files first to prevent pull aborts
-            @exec('cd ' . escapeshellarg(APP_ROOT) . ' && git checkout -- . 2>&1 && git pull origin main 2>&1', $output, $code);
+            // Reset any modified tracked files first to prevent pull aborts
+            @exec('cd ' . escapeshellarg(APP_ROOT) . ' && git reset --hard HEAD 2>&1 && git checkout -- . 2>&1 && git pull origin main 2>&1', $output, $code);
             if ($code === 0) {
                 $gitPulled = true;
                 $log[] = 'Git pull completed: ' . implode(' ', $output);
