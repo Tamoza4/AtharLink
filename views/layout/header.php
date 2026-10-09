@@ -93,11 +93,11 @@ if (!headers_sent()) {
     <a class="tamoza-brand" href="<?= Helpers::baseUrl() ?>">
         <?= Icon::get('link', 'text-primary', 22) ?>
         <span><?= APP_NAME ?></span>
-        <span class="tamoza-brand-badge">v<?= APP_VERSION ?></span>
+        <span class="tamoza-brand-badge d-none d-sm-inline">v<?= APP_VERSION ?></span>
     </a>
 
     <!-- Navigation Links (Center) -->
-    <nav class="tamoza-header-nav d-none d-md-flex">
+    <nav class="tamoza-header-nav d-none d-lg-flex">
         <a class="tamoza-nav-link <?= $activePage === 'overview' ? 'active' : '' ?>" href="<?= Helpers::baseUrl() ?>">
             <?= Icon::get('bar-chart', 'me-1', 16) ?> <?= Helpers::e(I18n::t('nav_overview')) ?>
         </a>
@@ -115,9 +115,9 @@ if (!headers_sent()) {
     <!-- Controls (Theme Toggle, Language Switch, User Profile) -->
     <div class="tamoza-header-controls">
         <!-- Language Switcher Button (AR / EN) -->
-        <a href="<?= Helpers::baseUrl('index.php?action=toggle_lang') ?>" class="btn btn-tamoza-subtle d-inline-flex align-items-center gap-2" title="<?= Helpers::e(I18n::t('switch_lang_title')) ?>">
+        <a href="<?= Helpers::baseUrl('index.php?action=toggle_lang') ?>" class="btn btn-tamoza-subtle d-inline-flex align-items-center gap-1 gap-sm-2" title="<?= Helpers::e(I18n::t('switch_lang_title')) ?>">
             <?= Icon::get('globe', '', 15) ?>
-            <span class="fw-semibold small"><?= Helpers::e(I18n::t('lang_switch_label')) ?></span>
+            <span class="fw-semibold small d-none d-sm-inline"><?= Helpers::e(I18n::t('lang_switch_label')) ?></span>
         </a>
 
         <!-- Theme Toggle (Moon / Sun) -->
@@ -127,17 +127,19 @@ if (!headers_sent()) {
 
         <!-- User Dropdown -->
         <div class="dropdown">
-            <button class="btn btn-tamoza-subtle dropdown-toggle d-flex align-items-center gap-2" type="button" data-bs-toggle="dropdown">
+            <button class="btn btn-tamoza-subtle dropdown-toggle d-flex align-items-center gap-2" type="button" data-bs-toggle="dropdown" aria-label="<?= Helpers::e(I18n::t('nav_profile')) ?>">
                 <?= Icon::get('user', '', 15) ?>
                 <span class="d-none d-sm-inline fw-semibold"><?= Helpers::e($user['username'] ?? I18n::t('nav_profile')) ?></span>
             </button>
             <ul class="dropdown-menu dropdown-menu-end shadow border-0 py-2">
                 <li><span class="dropdown-item-text text-secondary small px-3"><?= Helpers::e(I18n::t('nav_profile')) ?>: <?= Helpers::e($user['username'] ?? '') ?></span></li>
                 <li><hr class="dropdown-divider my-1"></li>
-                <li class="d-md-none"><a class="dropdown-item" href="<?= Helpers::baseUrl() ?>"><?= Icon::get('bar-chart', 'me-2', 15) ?> <?= Helpers::e(I18n::t('nav_overview')) ?></a></li>
-                <li class="d-md-none"><a class="dropdown-item" href="<?= Helpers::baseUrl('index.php?page=links') ?>"><?= Icon::get('link-2', 'me-2', 15) ?> <?= Helpers::e(I18n::t('nav_links')) ?></a></li>
-                <li class="d-md-none"><a class="dropdown-item" href="<?= Helpers::baseUrl('index.php?page=logs') ?>"><?= Icon::get('activity', 'me-2', 15) ?> <?= Helpers::e(I18n::t('nav_logs')) ?></a></li>
-                <li><a class="dropdown-item" href="<?= Helpers::baseUrl('index.php?page=settings') ?>"><?= Icon::get('settings', 'me-2', 15) ?> <?= Helpers::e(I18n::t('nav_settings')) ?></a></li>
+                <li class="d-lg-none"><a class="dropdown-item" href="<?= Helpers::baseUrl() ?>"><?= Icon::get('bar-chart', 'me-2', 15) ?> <?= Helpers::e(I18n::t('nav_overview')) ?></a></li>
+                <li class="d-lg-none"><a class="dropdown-item" href="<?= Helpers::baseUrl('index.php?page=links') ?>"><?= Icon::get('link-2', 'me-2', 15) ?> <?= Helpers::e(I18n::t('nav_links')) ?></a></li>
+                <li class="d-lg-none"><a class="dropdown-item" href="<?= Helpers::baseUrl('index.php?page=logs') ?>"><?= Icon::get('activity', 'me-2', 15) ?> <?= Helpers::e(I18n::t('nav_logs')) ?></a></li>
+                <li class="d-lg-none"><a class="dropdown-item" href="<?= Helpers::baseUrl('index.php?page=settings') ?>"><?= Icon::get('settings', 'me-2', 15) ?> <?= Helpers::e(I18n::t('nav_settings')) ?></a></li>
+                <li class="d-lg-none"><hr class="dropdown-divider my-1"></li>
+                <li class="d-none d-lg-block"><a class="dropdown-item" href="<?= Helpers::baseUrl('index.php?page=settings') ?>"><?= Icon::get('settings', 'me-2', 15) ?> <?= Helpers::e(I18n::t('nav_settings')) ?></a></li>
                 <li>
                     <form method="POST" action="<?= Helpers::baseUrl('index.php?action=logout') ?>" class="m-0 p-0">
                         <?= Helpers::csrfInput() ?>

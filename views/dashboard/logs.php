@@ -60,7 +60,7 @@ $getActionBadge = function (string $action): array {
     <div class="d-flex flex-wrap align-items-center gap-2">
         <!-- Export Dropdown -->
         <div class="dropdown">
-            <button class="btn btn-tamoza-secondary dropdown-toggle d-inline-flex align-items-center gap-2" type="button" data-bs-toggle="dropdown">
+            <button class="btn btn-tamoza-secondary dropdown-toggle d-inline-flex align-items-center gap-2" type="button" data-bs-toggle="dropdown" data-bs-boundary="viewport" data-bs-popper-config='{"strategy":"fixed"}'>
                 <?= Icon::get('download', '', 16) ?>
                 <span><?= Helpers::e(I18n::t('export_data')) ?></span>
             </button>
