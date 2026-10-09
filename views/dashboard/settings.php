@@ -347,6 +347,9 @@ $updateInfo = Updater::check();
             </div>
 
         </div>
+    </div>
+</div>
+
 <!-- Modal: Rebuild & Repair Confirmation & Progress Modal -->
 <div class="modal fade" id="rebuildRepairModal" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
