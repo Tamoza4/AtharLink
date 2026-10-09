@@ -5,6 +5,8 @@ namespace AtharLink;
 
 use PDO;
 
+require_once __DIR__ . '/AuditLogger.php';
+
 /**
  * Authentication, Brute-Force Rate Limiting, and Session Manager
  */
@@ -63,6 +65,7 @@ class Auth
         if ($user && !empty($user['locked_until']) && $user['locked_until'] > $currentTime) {
             $lockExpires = strtotime($user['locked_until']);
             $remainingMinutes = max(1, (int)ceil(($lockExpires - time()) / 60));
+            AuditLogger::log('login_locked', 'Login attempt while account is locked: ' . $username, ['username' => $username, 'remaining_minutes' => $remainingMinutes], $username, (int)$user['id']);
             return [
                 'success' => false,
                 'message' => I18n::t('account_locked_temp', ['minutes' => $remainingMinutes])
@@ -90,12 +93,17 @@ class Auth
                     ':id'       => $user['id']
                 ]);
 
+                AuditLogger::log('login_failed', 'Failed login attempt for user: ' . $username, ['username' => $username, 'attempt' => $failedAttempts], $username, (int)$user['id']);
+
                 if ($failedAttempts >= MAX_LOGIN_ATTEMPTS) {
+                    AuditLogger::log('account_locked', 'Account locked due to excessive failed attempts: ' . $username, ['username' => $username, 'lockout_minutes' => LOGIN_LOCKOUT_MINUTES], $username, (int)$user['id']);
                     return [
                         'success' => false,
                         'message' => I18n::t('account_locked_max', ['minutes' => LOGIN_LOCKOUT_MINUTES])
                     ];
                 }
+            } else {
+                AuditLogger::log('login_failed', 'Failed login attempt for non-existent user: ' . $username, ['username' => $username], $username, null);
             }
 
             return [
@@ -120,6 +128,8 @@ class Auth
         $_SESSION['athar_username'] = $user['username'];
         $_SESSION['athar_logged_in_at'] = time();
 
+        AuditLogger::log('login', 'User logged in: ' . $user['username'], ['username' => $user['username']], $user['username'], (int)$user['id']);
+
         return [
             'success' => true,
             'message' => I18n::t('login_success')
@@ -131,6 +141,10 @@ class Auth
      */
     public static function logout(): void
     {
+        $uname = $_SESSION['athar_username'] ?? 'admin';
+        $uid = isset($_SESSION['athar_user_id']) ? (int)$_SESSION['athar_user_id'] : null;
+        AuditLogger::log('logout', 'User logged out: ' . $uname, ['username' => $uname], $uname, $uid);
+
         $_SESSION = [];
         if (ini_get('session.use_cookies')) {
             $params = session_get_cookie_params();
@@ -333,6 +347,11 @@ class Auth
         // One-time rotation: regenerate recovery key
         @unlink(RECOVERY_FILE);
         $newKey = self::getRecoveryKey();
+
+        AuditLogger::log('recovery_reset', 'Admin password reset using Emergency Recovery Key', [
+            'username' => $user['username'],
+            'user_id'  => $user['id']
+        ], $user['username'], (int)$user['id']);
 
         return [
             'success'          => true,

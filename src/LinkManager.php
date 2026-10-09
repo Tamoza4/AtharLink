@@ -5,6 +5,8 @@ namespace AtharLink;
 
 use PDO;
 
+require_once __DIR__ . '/AuditLogger.php';
+
 /**
  * Link CRUD, Analytics Aggregator, and Data Export Engine
  */
@@ -100,6 +102,17 @@ class LinkManager
         ]);
 
         $newId = (int)$pdo->lastInsertId();
+
+        AuditLogger::log('create_link', 'Created link: ' . $slug, [
+            'id'            => $newId,
+            'slug'          => $slug,
+            'target_url'    => $targetUrl,
+            'title'         => $title,
+            'redirect_type' => $redirectType,
+            'is_protected'  => !empty($passwordHash),
+            'click_limit'   => $clickLimit,
+            'expires_at'    => $expiresAt
+        ]);
 
         return [
             'success' => true,
@@ -256,6 +269,18 @@ class LinkManager
             ':id'      => $id
         ]);
 
+        AuditLogger::log('update_link', 'Updated link: ' . $slug, [
+            'id'            => $id,
+            'slug'          => $slug,
+            'target_url'    => $targetUrl,
+            'title'         => $title,
+            'redirect_type' => $redirectType,
+            'is_active'     => $isActive,
+            'is_protected'  => !empty($passwordHash),
+            'click_limit'   => $clickLimit,
+            'expires_at'    => $expiresAt
+        ]);
+
         return ['success' => true, 'message' => I18n::t('link_updated_success')];
     }
 
@@ -264,9 +289,21 @@ class LinkManager
      */
     public static function delete(int $id): bool
     {
+        $link = self::findById($id);
         $pdo = Database::getConnection();
         $stmt = $pdo->prepare("DELETE FROM links WHERE id = :id");
-        return $stmt->execute([':id' => $id]);
+        $res = $stmt->execute([':id' => $id]);
+
+        if ($res && $link) {
+            AuditLogger::log('delete_link', 'Deleted link: ' . $link['slug'], [
+                'id'         => $id,
+                'slug'       => $link['slug'],
+                'target_url' => $link['target_url'],
+                'title'      => $link['title'] ?? ''
+            ]);
+        }
+
+        return $res;
     }
 
     /**
@@ -274,9 +311,21 @@ class LinkManager
      */
     public static function toggleActive(int $id): bool
     {
+        $link = self::findById($id);
         $pdo = Database::getConnection();
         $stmt = $pdo->prepare("UPDATE links SET is_active = CASE WHEN is_active = 1 THEN 0 ELSE 1 END, updated_at = CURRENT_TIMESTAMP WHERE id = :id");
-        return $stmt->execute([':id' => $id]);
+        $res = $stmt->execute([':id' => $id]);
+
+        if ($res && $link) {
+            $newState = ((int)$link['is_active'] === 1) ? 0 : 1;
+            AuditLogger::log('toggle_link', ($newState ? 'Resumed' : 'Paused') . ' link: ' . $link['slug'], [
+                'id'     => $id,
+                'slug'   => $link['slug'],
+                'status' => $newState ? 'active' : 'paused'
+            ]);
+        }
+
+        return $res;
     }
 
     /**
@@ -284,9 +333,19 @@ class LinkManager
      */
     public static function resetClicks(int $id): bool
     {
+        $link = self::findById($id);
         $pdo = Database::getConnection();
         $stmt = $pdo->prepare("DELETE FROM clicks WHERE link_id = :id");
-        return $stmt->execute([':id' => $id]);
+        $res = $stmt->execute([':id' => $id]);
+
+        if ($res && $link) {
+            AuditLogger::log('reset_clicks', 'Reset click counters for link: ' . $link['slug'], [
+                'id'   => $id,
+                'slug' => $link['slug']
+            ]);
+        }
+
+        return $res;
     }
 
     /**

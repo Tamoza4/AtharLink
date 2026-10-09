@@ -104,6 +104,9 @@ if (!headers_sent()) {
         <a class="tamoza-nav-link <?= $activePage === 'links' ? 'active' : '' ?>" href="<?= Helpers::baseUrl('index.php?page=links') ?>">
             <?= Icon::get('link-2', 'me-1', 16) ?> <?= Helpers::e(I18n::t('nav_links')) ?>
         </a>
+        <a class="tamoza-nav-link <?= $activePage === 'logs' ? 'active' : '' ?>" href="<?= Helpers::baseUrl('index.php?page=logs') ?>">
+            <?= Icon::get('activity', 'me-1', 16) ?> <?= Helpers::e(I18n::t('nav_logs')) ?>
+        </a>
         <a class="tamoza-nav-link <?= $activePage === 'settings' ? 'active' : '' ?>" href="<?= Helpers::baseUrl('index.php?page=settings') ?>">
             <?= Icon::get('settings', 'me-1', 16) ?> <?= Helpers::e(I18n::t('nav_settings')) ?>
         </a>
@@ -133,6 +136,7 @@ if (!headers_sent()) {
                 <li><hr class="dropdown-divider my-1"></li>
                 <li class="d-md-none"><a class="dropdown-item" href="<?= Helpers::baseUrl() ?>"><?= Icon::get('bar-chart', 'me-2', 15) ?> <?= Helpers::e(I18n::t('nav_overview')) ?></a></li>
                 <li class="d-md-none"><a class="dropdown-item" href="<?= Helpers::baseUrl('index.php?page=links') ?>"><?= Icon::get('link-2', 'me-2', 15) ?> <?= Helpers::e(I18n::t('nav_links')) ?></a></li>
+                <li class="d-md-none"><a class="dropdown-item" href="<?= Helpers::baseUrl('index.php?page=logs') ?>"><?= Icon::get('activity', 'me-2', 15) ?> <?= Helpers::e(I18n::t('nav_logs')) ?></a></li>
                 <li><a class="dropdown-item" href="<?= Helpers::baseUrl('index.php?page=settings') ?>"><?= Icon::get('settings', 'me-2', 15) ?> <?= Helpers::e(I18n::t('nav_settings')) ?></a></li>
                 <li>
                     <form method="POST" action="<?= Helpers::baseUrl('index.php?action=logout') ?>" class="m-0 p-0">

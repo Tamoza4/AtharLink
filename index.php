@@ -13,6 +13,7 @@ require_once __DIR__ . '/src/LinkManager.php';
 require_once __DIR__ . '/src/I18n.php';
 require_once __DIR__ . '/src/Icon.php';
 require_once __DIR__ . '/src/Updater.php';
+require_once __DIR__ . '/src/AuditLogger.php';
 
 use AtharLink\Helpers;
 use AtharLink\Database;
@@ -21,6 +22,7 @@ use AtharLink\LinkManager;
 use AtharLink\I18n;
 use AtharLink\Icon;
 use AtharLink\Updater;
+use AtharLink\AuditLogger;
 
 $action = $_GET['action'] ?? '';
 $page   = $_GET['page'] ?? 'overview';
@@ -398,6 +400,7 @@ if ($action === 'regen_token' && $_SERVER['REQUEST_METHOD'] === 'POST') {
         $_SESSION['flash_error'] = I18n::t('csrf_invalid');
     } else {
         Auth::regenerateApiToken((int)Auth::id());
+        AuditLogger::log('regen_token', 'Regenerated admin API Bearer Token');
         $_SESSION['flash_success'] = I18n::t('token_regen_success');
     }
     header('Location: ' . Helpers::baseUrl('index.php?page=settings'));
@@ -416,6 +419,11 @@ if ($action === 'save_settings' && $_SERVER['REQUEST_METHOD'] === 'POST') {
         Database::setSetting('site_title', $title);
         Database::setSetting('uniqueness_window', (string)$seconds);
 
+        AuditLogger::log('save_settings', 'Updated system settings: ' . $title, [
+            'site_title'       => $title,
+            'uniqueness_hours' => $hours
+        ]);
+
         $_SESSION['flash_success'] = I18n::t('settings_saved_success');
     }
     header('Location: ' . Helpers::baseUrl('index.php?page=settings'));
@@ -431,6 +439,8 @@ if ($action === 'download_backup') {
     }
 
     $filename = 'athar_backup_' . date('Y-m-d_H-i') . '.sqlite';
+    AuditLogger::log('download_backup', 'Downloaded database backup: ' . $filename);
+
     header('Content-Description: File Transfer');
     header('Content-Type: application/vnd.sqlite3');
     header('Content-Disposition: attachment; filename="' . $filename . '"');
@@ -507,6 +517,10 @@ if ($action === 'restore_backup' && $_SERVER['REQUEST_METHOD'] === 'POST') {
                         }
                     }
 
+                    AuditLogger::log('restore_backup', 'Restored database from uploaded backup file', [
+                        'preserve_admin' => $preserveAdmin
+                    ]);
+
                     $_SESSION['flash_success'] = I18n::t('backup_restored_success');
                 }
             }
@@ -546,6 +560,7 @@ if ($action === 'apply_update' && $_SERVER['REQUEST_METHOD'] === 'POST') {
             Helpers::json($res);
         }
         if ($res['success']) {
+            AuditLogger::log('apply_update', 'Applied system update successfully', ['version' => $res['latest'] ?? '']);
             $_SESSION['flash_success'] = $res['message'];
         } elseif (!empty($res['already_latest'])) {
             $_SESSION['flash_info'] = $res['message'];
@@ -570,12 +585,57 @@ if ($action === 'rebuild_repair' && $_SERVER['REQUEST_METHOD'] === 'POST') {
             Helpers::json($res);
         }
         if ($res['success']) {
+            AuditLogger::log('rebuild_repair', 'Rebuilt and repaired system files and database integrity');
             $_SESSION['flash_success'] = $res['message'];
         } else {
             $_SESSION['flash_error'] = $res['message'] ?? 'Rebuild error';
         }
     }
     header('Location: ' . Helpers::baseUrl('index.php?page=settings'));
+    exit;
+}
+
+// Prune Audit Logs (e.g. older than 30, 60, or 90 days)
+if ($action === 'prune_logs' && $_SERVER['REQUEST_METHOD'] === 'POST') {
+    if (!Helpers::verifyCsrf($_POST['csrf_token'] ?? '')) {
+        $_SESSION['flash_error'] = I18n::t('csrf_invalid');
+    } else {
+        $days = max(1, (int)($_POST['days'] ?? 60));
+        $deleted = AuditLogger::prune($days);
+        AuditLogger::log('prune_logs', 'Pruned audit logs older than ' . $days . ' days', ['deleted_count' => $deleted, 'days' => $days]);
+        $_SESSION['flash_success'] = I18n::t('logs_pruned_success', ['count' => $deleted, 'days' => $days]);
+    }
+    header('Location: ' . Helpers::baseUrl('index.php?page=logs'));
+    exit;
+}
+
+// Clear All Audit Logs
+if ($action === 'clear_logs' && $_SERVER['REQUEST_METHOD'] === 'POST') {
+    if (!Helpers::verifyCsrf($_POST['csrf_token'] ?? '')) {
+        $_SESSION['flash_error'] = I18n::t('csrf_invalid');
+    } else {
+        AuditLogger::clearAll();
+        AuditLogger::log('clear_logs', 'Cleared all audit logs');
+        $_SESSION['flash_success'] = I18n::t('logs_cleared_success');
+    }
+    header('Location: ' . Helpers::baseUrl('index.php?page=logs'));
+    exit;
+}
+
+// Export Audit Logs to CSV / JSON
+if ($action === 'export_logs') {
+    $format = ($_GET['format'] ?? 'csv') === 'json' ? 'json' : 'csv';
+    $content = AuditLogger::export($format);
+    AuditLogger::log('export_logs', 'Exported audit logs in format: ' . strtoupper($format));
+
+    if ($format === 'json') {
+        header('Content-Type: application/json; charset=UTF-8');
+        header('Content-Disposition: attachment; filename="athar_audit_logs_' . date('Y-m-d') . '.json"');
+    } else {
+        header('Content-Type: text/csv; charset=UTF-8');
+        header('Content-Disposition: attachment; filename="athar_audit_logs_' . date('Y-m-d') . '.csv"');
+    }
+    echo $content;
     exit;
 }
 
@@ -607,6 +667,24 @@ switch ($page) {
 
         require __DIR__ . '/views/layout/header.php';
         require __DIR__ . '/views/dashboard/stats.php';
+        require __DIR__ . '/views/layout/footer.php';
+        break;
+
+    case 'logs':
+        $activePage = 'logs';
+        $pageTitle = I18n::t('nav_logs');
+        $filterAction = !empty($_GET['filter_action']) ? (string)$_GET['filter_action'] : null;
+        $search = trim((string)($_GET['q'] ?? ''));
+        $pageNum = max(1, (int)($_GET['p'] ?? 1));
+        $perPage = 50;
+        $totalLogs = AuditLogger::countLogs($filterAction, $search);
+        $totalPages = max(1, (int)ceil($totalLogs / $perPage));
+        $offset = ($pageNum - 1) * $perPage;
+        $logs = AuditLogger::getLogs($perPage, $offset, $filterAction, $search);
+        $distinctActions = AuditLogger::getDistinctActions();
+
+        require __DIR__ . '/views/layout/header.php';
+        require __DIR__ . '/views/dashboard/logs.php';
         require __DIR__ . '/views/layout/footer.php';
         break;
 

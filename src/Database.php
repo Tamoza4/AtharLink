@@ -79,6 +79,26 @@ class Database
                     $pdo->exec("ALTER TABLE clicks ADD COLUMN ip_address TEXT NULL;");
                 }
             }
+
+            // Ensure audit_logs table exists
+            $auditTableExists = $pdo->query("SELECT name FROM sqlite_master WHERE type='table' AND name='audit_logs'")->fetchColumn();
+            if (!$auditTableExists) {
+                $pdo->exec("
+                    CREATE TABLE IF NOT EXISTS audit_logs (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        user_id INTEGER NULL,
+                        username TEXT NOT NULL,
+                        action TEXT NOT NULL,
+                        description TEXT NOT NULL,
+                        details TEXT NULL,
+                        ip_address TEXT NULL,
+                        user_agent TEXT NULL,
+                        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+                    );
+                    CREATE INDEX IF NOT EXISTS idx_audit_logs_action ON audit_logs(action);
+                    CREATE INDEX IF NOT EXISTS idx_audit_logs_created ON audit_logs(created_at);
+                ");
+            }
         } catch (\Throwable $e) {
             error_log('AtharLink Migration Check Notice: ' . $e->getMessage());
         }
@@ -183,6 +203,23 @@ class Database
         self::ensureDefaultSetting('uniqueness_window', (string)DEFAULT_UNIQUENESS_WINDOW);
         self::ensureDefaultSetting('theme', 'dark');
         self::ensureDefaultSetting('language', 'ar');
+
+        // 5. Admin Audit & Activity Logs
+        $pdo->exec("
+            CREATE TABLE IF NOT EXISTS audit_logs (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id INTEGER NULL,
+                username TEXT NOT NULL,
+                action TEXT NOT NULL,
+                description TEXT NOT NULL,
+                details TEXT NULL,
+                ip_address TEXT NULL,
+                user_agent TEXT NULL,
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+            );
+        ");
+        $pdo->exec("CREATE INDEX IF NOT EXISTS idx_audit_logs_action ON audit_logs(action);");
+        $pdo->exec("CREATE INDEX IF NOT EXISTS idx_audit_logs_created ON audit_logs(created_at);");
     }
 
     /**
