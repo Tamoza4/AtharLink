@@ -25,6 +25,16 @@ use AtharLink\Updater;
 $action = $_GET['action'] ?? '';
 $page   = $_GET['page'] ?? 'overview';
 
+// Language Toggle (Dual-Language AR / EN) - Available everywhere including installer
+if ($action === 'toggle_lang') {
+    $current = I18n::getLang();
+    $newLang = $current === 'en' ? 'ar' : 'en';
+    setcookie('athar_lang', $newLang, time() + 31536000, '/');
+    $redirect = $_SERVER['HTTP_REFERER'] ?? Helpers::baseUrl();
+    header('Location: ' . $redirect);
+    exit;
+}
+
 // ----------------------------------------------------
 // 1. SELF-INSTALLATION & FIRST-RUN SETUP
 // ----------------------------------------------------
@@ -84,15 +94,7 @@ if ($action === 'do_install') {
 // 2. PUBLIC ACTIONS (No login required)
 // ----------------------------------------------------
 
-// Language Toggle (Dual-Language AR / EN)
-if ($action === 'toggle_lang') {
-    $current = $_COOKIE['athar_lang'] ?? 'ar';
-    $newLang = $current === 'ar' ? 'en' : 'ar';
-    setcookie('athar_lang', $newLang, time() + 31536000, '/');
-    $redirect = $_SERVER['HTTP_REFERER'] ?? Helpers::baseUrl();
-    header('Location: ' . $redirect);
-    exit;
-}
+
 
 
 

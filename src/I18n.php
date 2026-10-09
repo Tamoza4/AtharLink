@@ -17,8 +17,8 @@ class I18n
     public static function getLang(): string
     {
         if (self::$currentLang === null) {
-            $lang = $_COOKIE['athar_lang'] ?? 'ar';
-            self::$currentLang = ($lang === 'en') ? 'en' : 'ar';
+            $lang = $_COOKIE['athar_lang'] ?? 'en';
+            self::$currentLang = ($lang === 'ar') ? 'ar' : 'en';
         }
         return self::$currentLang;
     }
