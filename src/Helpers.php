@@ -154,6 +154,58 @@ class Helpers
     }
 
     /**
+     * Get all official IANA timezones formatted uniformly with current UTC offset
+     * e.g. ['Asia/Riyadh' => '(UTC+03:00) Asia/Riyadh', ...]
+     *
+     * @return array<string, string>
+     */
+    public static function getTimezoneList(): array
+    {
+        static $list = null;
+        if ($list !== null) {
+            return $list;
+        }
+
+        $now = new \DateTime('now', new \DateTimeZone('UTC'));
+        $identifiers = \DateTimeZone::listIdentifiers();
+        $entries = [];
+
+        foreach ($identifiers as $id) {
+            try {
+                $tz = new \DateTimeZone($id);
+                $offset = $tz->getOffset($now);
+                $hours = intdiv($offset, 3600);
+                $minutes = abs(intdiv($offset % 3600, 60));
+                $sign = $hours >= 0 ? '+' : '-';
+                $offsetLabel = sprintf('UTC%s%02d:%02d', $sign, abs($hours), $minutes);
+
+                $entries[] = [
+                    'id'     => $id,
+                    'offset' => $offset,
+                    'label'  => '(' . $offsetLabel . ') ' . $id
+                ];
+            } catch (\Throwable) {
+                continue;
+            }
+        }
+
+        // Sort by offset ascending, then alphabetically by IANA identifier
+        usort($entries, function (array $a, array $b): int {
+            if ($a['offset'] === $b['offset']) {
+                return strcmp($a['id'], $b['id']);
+            }
+            return $a['offset'] <=> $b['offset'];
+        });
+
+        $list = [];
+        foreach ($entries as $e) {
+            $list[$e['id']] = $e['label'];
+        }
+
+        return $list;
+    }
+
+    /**
      * Format a UTC database timestamp into application timezone
      */
     public static function formatDate(?string $utcDate, string $format = 'Y-m-d H:i'): string

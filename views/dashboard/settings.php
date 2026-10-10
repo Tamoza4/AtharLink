@@ -21,30 +21,6 @@ $guestRedirectEnabled = Database::getSetting('guest_redirect_enabled', !empty($g
 $adminLoginSlug = Database::getSetting('admin_login_slug', 'admin');
 $appTimezone = Database::getSetting('app_timezone', 'UTC');
 $updateInfo = Updater::check();
-
-$popularTimezones = [
-    'Asia/Riyadh'       => '(UTC+03:00) الرياض، مكة المكرمة (KSA)',
-    'Asia/Dubai'        => '(UTC+04:00) دبي، أبوظبي (UAE)',
-    'Africa/Cairo'      => '(UTC+02:00) القاهرة (Egypt)',
-    'Asia/Kuwait'       => '(UTC+03:00) الكويت (Kuwait)',
-    'Asia/Qatar'        => '(UTC+03:00) الدوحة (Qatar)',
-    'Asia/Bahrain'      => '(UTC+03:00) المنامة (Bahrain)',
-    'Asia/Muscat'       => '(UTC+04:00) مسقط (Oman)',
-    'Asia/Amman'        => '(UTC+03:00) عمّان (Jordan)',
-    'Asia/Baghdad'      => '(UTC+03:00) بغداد (Iraq)',
-    'Asia/Beirut'       => '(UTC+02:00) بيروت (Lebanon)',
-    'Asia/Damascus'     => '(UTC+03:00) دمشق (Syria)',
-    'Africa/Casablanca' => '(UTC+01:00) الدار البيضاء (Morocco)',
-    'Africa/Algiers'    => '(UTC+01:00) الجزائر (Algeria)',
-    'Africa/Tunis'      => '(UTC+01:00) تونس (Tunisia)',
-    'Africa/Tripoli'    => '(UTC+02:00) طرابلس (Libya)',
-    'Africa/Khartoum'   => '(UTC+02:00) الخرطوم (Sudan)',
-    'UTC'               => '(UTC+00:00) التوقيت العالمي الموحد (UTC)',
-    'Europe/London'     => '(UTC+00:00) لندن (London / GMT)',
-    'Europe/Paris'      => '(UTC+01:00) باريس (Paris / CET)',
-    'Europe/Istanbul'   => '(UTC+03:00) إسطنبول (Istanbul)',
-    'America/New_York'  => '(UTC-05:00) نيويورك (New York / EST)',
-];
 ?>
 
 <div class="mb-4">
@@ -156,24 +132,11 @@ $popularTimezones = [
                         </button>
                     </div>
                     <select name="app_timezone" id="appTimezoneSelect" class="form-select tamoza-input font-monospace">
-                        <optgroup label="<?= Helpers::e(I18n::t('popular_timezones_group')) ?>">
-                            <?php foreach ($popularTimezones as $tzCode => $tzLabel): ?>
-                                <option value="<?= Helpers::e($tzCode) ?>" <?= $appTimezone === $tzCode ? 'selected' : '' ?>>
-                                    <?= Helpers::e($tzCode . ' — ' . $tzLabel) ?>
-                                </option>
-                            <?php endforeach; ?>
-                        </optgroup>
-                        <optgroup label="<?= Helpers::e(I18n::t('all_timezones_group')) ?>">
-                            <?php 
-                            $allTz = timezone_identifiers_list();
-                            foreach ($allTz as $tzIdentifier): 
-                                if (isset($popularTimezones[$tzIdentifier])) continue;
-                            ?>
-                                <option value="<?= Helpers::e($tzIdentifier) ?>" <?= $appTimezone === $tzIdentifier ? 'selected' : '' ?>>
-                                    <?= Helpers::e($tzIdentifier) ?>
-                                </option>
-                            <?php endforeach; ?>
-                        </optgroup>
+                        <?php foreach (Helpers::getTimezoneList() as $tzCode => $tzLabel): ?>
+                            <option value="<?= Helpers::e($tzCode) ?>" <?= $appTimezone === $tzCode ? 'selected' : '' ?>>
+                                <?= Helpers::e($tzLabel) ?>
+                            </option>
+                        <?php endforeach; ?>
                     </select>
                     <div class="d-flex align-items-center justify-content-between mt-1">
                         <small class="text-secondary"><?= I18n::t('app_timezone_hint') ?></small>
