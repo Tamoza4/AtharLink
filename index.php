@@ -541,15 +541,50 @@ if ($action === 'restore_backup' && $_SERVER['REQUEST_METHOD'] === 'POST') {
                 if (preg_match('/<\?php|<\?=/i', (string)$contentSample)) {
                     $_SESSION['flash_error'] = I18n::t('backup_security_rejected');
                 } else {
-                    // Safe restore copy
+                    // 1. Capture current admin credentials so current password never gets overwritten
+                    $currentUsers = [];
+                    try {
+                        $oldPdo = Database::getConnection();
+                        $currentUsers = $oldPdo->query("SELECT * FROM users")->fetchAll(\PDO::FETCH_ASSOC);
+                    } catch (\Throwable) {}
+
+                    // 2. Safe restore copy
                     @copy($tmpPath, DB_PATH);
 
-                    // Re-verify schema migrations and integrity
+                    // 3. Automatically restore current users so password remains unchanged
+                    if (!empty($currentUsers)) {
+                        try {
+                            $newPdo = new \PDO('sqlite:' . DB_PATH, null, null, [
+                                \PDO::ATTR_ERRMODE => \PDO::ERRMODE_EXCEPTION,
+                                \PDO::ATTR_DEFAULT_FETCH_MODE => \PDO::FETCH_ASSOC
+                            ]);
+                            $newPdo->exec("DELETE FROM users;");
+                            $insertUserStmt = $newPdo->prepare("
+                                INSERT INTO users (id, username, password_hash, api_token, failed_login_attempts, locked_until, created_at)
+                                VALUES (:id, :username, :password_hash, :api_token, :failed_login_attempts, :locked_until, :created_at)
+                            ");
+                            foreach ($currentUsers as $u) {
+                                $insertUserStmt->execute([
+                                    ':id'                    => $u['id'],
+                                    ':username'              => $u['username'],
+                                    ':password_hash'         => $u['password_hash'],
+                                    ':api_token'             => $u['api_token'] ?? null,
+                                    ':failed_login_attempts' => $u['failed_login_attempts'] ?? 0,
+                                    ':locked_until'          => $u['locked_until'] ?? null,
+                                    ':created_at'            => $u['created_at'] ?? date('Y-m-d H:i:s')
+                                ]);
+                            }
+                        } catch (\Throwable $e) {
+                            error_log('AtharLink Admin Auto-Preserve Notice: ' . $e->getMessage());
+                        }
+                    }
+
+                    // 4. Re-verify schema migrations and integrity
                     try {
                         Database::initSchema();
                     } catch (\Throwable $e) {}
 
-                    AuditLogger::log('restore_backup', 'Restored database from uploaded backup file', [
+                    AuditLogger::log('restore_backup', 'Restored database from uploaded backup file (kept active credentials)', [
                         'filename' => $_FILES['backup_file']['name'] ?? 'backup.sqlite'
                     ]);
 
