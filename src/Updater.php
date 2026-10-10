@@ -58,28 +58,29 @@ class Updater
             'error'         => null
         ];
 
-        // 1. Primary Strategy: Fast Instant CDN Check via raw version.json
-        // - Instant updates upon git push (no manual GitHub Releases delay)
-        // - Completely immune to GitHub API 60 req/hour rate-limits
-        // - Ultra-fast response (<300ms)
-        $rawVersionUrl = "https://raw.githubusercontent.com/{$repo}/main/version.json" . ($forceRefresh ? ('?_t=' . time()) : '');
+        // 1. Primary Strategy: GitHub API contents endpoint with raw header (Instant 0-delay version detection)
+        $apiUrl = "https://api.github.com/repos/{$repo}/contents/version.json?ref=main";
         $versionFetched = false;
 
         if (function_exists('curl_init')) {
-            $chRaw = curl_init($rawVersionUrl);
-            curl_setopt_array($chRaw, [
+            $ch = curl_init($apiUrl);
+            curl_setopt_array($ch, [
                 CURLOPT_RETURNTRANSFER => true,
                 CURLOPT_TIMEOUT        => 4,
                 CURLOPT_CONNECTTIMEOUT => 2,
                 CURLOPT_USERAGENT      => 'AtharLink-Updater/' . $current,
+                CURLOPT_HTTPHEADER     => [
+                    'Accept: application/vnd.github.raw+json',
+                    'User-Agent: AtharLink-Updater'
+                ],
                 CURLOPT_SSL_VERIFYPEER => true
             ]);
-            $rawRes = curl_exec($chRaw);
-            $rawHttpCode = (int)curl_getinfo($chRaw, CURLINFO_HTTP_CODE);
-            curl_close($chRaw);
+            $res = curl_exec($ch);
+            $httpCode = (int)curl_getinfo($ch, CURLINFO_HTTP_CODE);
+            curl_close($ch);
 
-            if ($rawHttpCode === 200 && is_string($rawRes) && strlen($rawRes) > 0) {
-                $rawJson = json_decode($rawRes, true);
+            if ($httpCode === 200 && is_string($res) && strlen($res) > 0) {
+                $rawJson = json_decode($res, true);
                 if (is_array($rawJson) && !empty($rawJson['version'])) {
                     $latest = ltrim((string)$rawJson['version'], 'vV');
                     $result['latest']        = $latest;
@@ -92,9 +93,32 @@ class Updater
                     $versionFetched = true;
                 }
             }
-        } elseif (ini_get('allow_url_fopen')) {
-            $rawRes = @file_get_contents($rawVersionUrl);
-            if ($rawRes !== false) {
+        }
+
+        // 2. Secondary Strategy: Raw CDN version.json (if API was rate-limited or unavailable)
+        if (!$versionFetched) {
+            $rawVersionUrl = "https://raw.githubusercontent.com/{$repo}/main/version.json";
+            $rawRes = null;
+            if (function_exists('curl_init')) {
+                $chRaw = curl_init($rawVersionUrl);
+                curl_setopt_array($chRaw, [
+                    CURLOPT_RETURNTRANSFER => true,
+                    CURLOPT_TIMEOUT        => 3,
+                    CURLOPT_CONNECTTIMEOUT => 2,
+                    CURLOPT_USERAGENT      => 'AtharLink-Updater/' . $current,
+                    CURLOPT_SSL_VERIFYPEER => true
+                ]);
+                $rawRes = curl_exec($chRaw);
+                $rawHttpCode = (int)curl_getinfo($chRaw, CURLINFO_HTTP_CODE);
+                curl_close($chRaw);
+                if ($rawHttpCode !== 200) {
+                    $rawRes = null;
+                }
+            } elseif (ini_get('allow_url_fopen')) {
+                $rawRes = @file_get_contents($rawVersionUrl);
+            }
+
+            if (is_string($rawRes) && strlen($rawRes) > 0) {
                 $rawJson = json_decode($rawRes, true);
                 if (is_array($rawJson) && !empty($rawJson['version'])) {
                     $latest = ltrim((string)$rawJson['version'], 'vV');
