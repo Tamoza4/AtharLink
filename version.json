@@ -1,7 +1,7 @@
 {
-    "version": "1.0.12",
+    "version": "1.0.13",
     "release_date": "2026-10-10",
-    "name": "AtharLink v1.0.12",
-    "changelog": "Resolved RTL report card badge overlap, localized click metric units, and implemented instant real-time live link search.",
+    "name": "AtharLink v1.0.13",
+    "changelog": "Balanced settings dashboard cards layout and implemented instant hybrid version update checking.",
     "min_php": "8.1"
 }
