@@ -190,19 +190,12 @@ $updateInfo = Updater::check();
                 <?= Helpers::csrfInput() ?>
                 
                 <label class="form-label small fw-semibold"><?= I18n::t('restore_backup_label') ?></label>
-                <div class="input-group mb-2">
+                <div class="input-group mb-3">
                     <input type="file" name="backup_file" class="form-control tamoza-input" accept=".sqlite,.db" required>
                     <button type="submit" class="btn btn-danger rounded-3 fw-bold d-inline-flex align-items-center gap-2">
                         <?= Icon::get('upload', '', 16) ?>
                         <span><?= I18n::t('restore_btn') ?></span>
                     </button>
-                </div>
-                <div class="form-check form-switch mb-3 mt-2">
-                    <input class="form-check-input" type="checkbox" name="preserve_admin" id="preserveAdminCheck" value="1" checked>
-                    <label class="form-check-label small fw-semibold" for="preserveAdminCheck">
-                        <?= I18n::t('restore_keep_admin_label') ?>
-                    </label>
-                    <div class="text-secondary small mt-1" style="font-size: 12px;"><?= I18n::t('restore_keep_admin_hint') ?></div>
                 </div>
 
                 <small class="text-secondary d-block"><?= I18n::t('restore_hint') ?></small>
