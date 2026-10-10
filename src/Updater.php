@@ -45,7 +45,6 @@ class Updater
         }
 
         $repo = Database::getSetting('github_repo', self::DEFAULT_REPO);
-        $url = "https://api.github.com/repos/{$repo}/releases/latest";
 
         $result = [
             'current'       => $current,
@@ -59,13 +58,67 @@ class Updater
             'error'         => null
         ];
 
+        // 1. Primary Strategy: Fast Instant CDN Check via raw version.json
+        // - Instant updates upon git push (no manual GitHub Releases delay)
+        // - Completely immune to GitHub API 60 req/hour rate-limits
+        // - Ultra-fast response (<300ms)
+        $rawVersionUrl = "https://raw.githubusercontent.com/{$repo}/main/version.json" . ($forceRefresh ? ('?_t=' . time()) : '');
+        $versionFetched = false;
+
         if (function_exists('curl_init')) {
+            $chRaw = curl_init($rawVersionUrl);
+            curl_setopt_array($chRaw, [
+                CURLOPT_RETURNTRANSFER => true,
+                CURLOPT_TIMEOUT        => 4,
+                CURLOPT_CONNECTTIMEOUT => 2,
+                CURLOPT_USERAGENT      => 'AtharLink-Updater/' . $current,
+                CURLOPT_SSL_VERIFYPEER => true
+            ]);
+            $rawRes = curl_exec($chRaw);
+            $rawHttpCode = (int)curl_getinfo($chRaw, CURLINFO_HTTP_CODE);
+            curl_close($chRaw);
+
+            if ($rawHttpCode === 200 && is_string($rawRes) && strlen($rawRes) > 0) {
+                $rawJson = json_decode($rawRes, true);
+                if (is_array($rawJson) && !empty($rawJson['version'])) {
+                    $latest = ltrim((string)$rawJson['version'], 'vV');
+                    $result['latest']        = $latest;
+                    $result['has_update']    = version_compare($latest, $current, '>');
+                    $result['release_name']  = $rawJson['name'] ?? ('v' . $latest);
+                    $result['release_notes'] = $rawJson['changelog'] ?? '';
+                    $result['release_url']   = "https://github.com/{$repo}/releases/tag/v{$latest}";
+                    $result['published_at']  = $rawJson['release_date'] ?? date('Y-m-d');
+                    $result['min_php']       = $rawJson['min_php'] ?? '8.1';
+                    $versionFetched = true;
+                }
+            }
+        } elseif (ini_get('allow_url_fopen')) {
+            $rawRes = @file_get_contents($rawVersionUrl);
+            if ($rawRes !== false) {
+                $rawJson = json_decode($rawRes, true);
+                if (is_array($rawJson) && !empty($rawJson['version'])) {
+                    $latest = ltrim((string)$rawJson['version'], 'vV');
+                    $result['latest']        = $latest;
+                    $result['has_update']    = version_compare($latest, $current, '>');
+                    $result['release_name']  = $rawJson['name'] ?? ('v' . $latest);
+                    $result['release_notes'] = $rawJson['changelog'] ?? '';
+                    $result['release_url']   = "https://github.com/{$repo}/releases/tag/v{$latest}";
+                    $result['published_at']  = $rawJson['release_date'] ?? date('Y-m-d');
+                    $result['min_php']       = $rawJson['min_php'] ?? '8.1';
+                    $versionFetched = true;
+                }
+            }
+        }
+
+        // 2. Secondary Fallback: GitHub API releases/tags (if raw version.json was unreachable)
+        if (!$versionFetched && function_exists('curl_init')) {
+            $url = "https://api.github.com/repos/{$repo}/releases/latest";
             $ch = curl_init();
             curl_setopt_array($ch, [
                 CURLOPT_URL            => $url,
                 CURLOPT_RETURNTRANSFER => true,
-                CURLOPT_TIMEOUT        => 6,
-                CURLOPT_CONNECTTIMEOUT => 4,
+                CURLOPT_TIMEOUT        => 5,
+                CURLOPT_CONNECTTIMEOUT => 3,
                 CURLOPT_USERAGENT      => 'AtharLink-Updater/' . $current,
                 CURLOPT_HTTPHEADER     => [
                     'Accept: application/vnd.github.v3+json',
@@ -105,8 +158,8 @@ class Updater
                 curl_setopt_array($chTags, [
                     CURLOPT_URL            => $tagsUrl,
                     CURLOPT_RETURNTRANSFER => true,
-                    CURLOPT_TIMEOUT        => 5,
-                    CURLOPT_CONNECTTIMEOUT => 3,
+                    CURLOPT_TIMEOUT        => 4,
+                    CURLOPT_CONNECTTIMEOUT => 2,
                     CURLOPT_USERAGENT      => 'AtharLink-Updater/' . $current,
                     CURLOPT_HTTPHEADER     => [
                         'Accept: application/vnd.github.v3+json',
@@ -133,7 +186,7 @@ class Updater
                     }
                 }
             }
-        } else {
+        } elseif (!$versionFetched && !function_exists('curl_init')) {
             $result['error'] = 'cURL extension is required to check for online updates.';
         }
 
@@ -301,6 +354,7 @@ class Updater
                 'index.php',
                 'r.php',
                 'embed.js',
+                'version.json',
                 'config/config.php',
                 'src/Auth.php',
                 'src/Database.php',

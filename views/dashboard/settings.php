@@ -658,7 +658,8 @@ document.addEventListener('DOMContentLoaded', function () {
             iconWrapper.style.color = '#818CF8';
             iconWrapper.innerHTML = updateI18n.rocketIcon;
             titleEl.textContent = updateI18n.checkAvailableTitle;
-            msgEl.textContent = updateI18n.checkAvailableMsg.replace(':version', 'v' + data.latest);
+            let noteHtml = data.release_notes ? ('<div class="mt-2 p-2 rounded-2 small text-start" style="background: rgba(255,255,255,0.06); border: 1px solid var(--tamoza-border); max-height: 90px; overflow-y: auto;">' + (data.release_notes) + '</div>') : '';
+            msgEl.innerHTML = updateI18n.checkAvailableMsg.replace(':version', 'v' + data.latest) + noteHtml;
             actionsEl.innerHTML = `
                 <button type="button" class="btn btn-tamoza-subtle px-3" data-bs-dismiss="modal">${updateI18n.dismissBtnText}</button>
                 <button type="button" class="btn btn-tamoza-primary px-3 d-inline-flex align-items-center gap-1" id="openUpdateFromCheckBtn">
@@ -733,8 +734,10 @@ document.addEventListener('DOMContentLoaded', function () {
             if (iconEl) iconEl.innerHTML = '<span class="spinner-border spinner-border-sm"></span>';
             if (textEl) textEl.textContent = updateI18n.checkingLoading;
 
-            fetch(updateI18n.checkUrl, {
-                headers: { 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'application/json' }
+            const reqUrl = updateI18n.checkUrl + (updateI18n.checkUrl.includes('?') ? '&' : '?') + '_t=' + Date.now();
+            fetch(reqUrl, {
+                headers: { 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'application/json' },
+                cache: 'no-store'
             })
             .then(res => res.json())
             .then(data => {
@@ -765,8 +768,10 @@ document.addEventListener('DOMContentLoaded', function () {
             if (iconEl) iconEl.innerHTML = '<span class="spinner-border spinner-border-sm"></span>';
             if (textEl) textEl.textContent = updateI18n.checkingLoading;
 
-            fetch(updateI18n.checkUrl, {
-                headers: { 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'application/json' }
+            const reqUrl = updateI18n.checkUrl + (updateI18n.checkUrl.includes('?') ? '&' : '?') + '_t=' + Date.now();
+            fetch(reqUrl, {
+                headers: { 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'application/json' },
+                cache: 'no-store'
             })
             .then(res => res.json())
             .then(data => {
