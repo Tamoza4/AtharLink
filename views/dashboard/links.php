@@ -48,20 +48,23 @@ $activeFilter = $_GET['is_active'] ?? '';
 
 <!-- Filters and Search Toolbar (Tamoza Glassmorphism Card) -->
 <div class="tamoza-card p-3 mb-4">
-    <form method="GET" action="<?= Helpers::baseUrl('index.php') ?>" class="row g-3 align-items-center">
+    <form method="GET" action="<?= Helpers::baseUrl('index.php') ?>" id="linkFilterForm" class="row g-3 align-items-center">
         <input type="hidden" name="page" value="links">
         
         <!-- Seamless Search Input with Icon Inside -->
         <div class="col-12 col-md-5 col-lg-5">
-            <div class="tamoza-search-wrapper">
+            <div class="tamoza-search-wrapper position-relative">
                 <span class="tamoza-search-icon"><?= Icon::get('search', '', 16) ?></span>
-                <input type="text" name="search" class="tamoza-search-input" placeholder="<?= Helpers::e(I18n::t('search_placeholder')) ?>" value="<?= Helpers::e($search) ?>">
+                <input type="text" id="linkLiveSearchInput" name="search" class="tamoza-search-input pe-4" placeholder="<?= Helpers::e(I18n::t('search_placeholder')) ?>" value="<?= Helpers::e($search) ?>" autocomplete="off">
+                <button type="button" id="clearSearchInputBtn" class="btn btn-link p-0 position-absolute text-secondary border-0 <?= empty($search) ? 'd-none' : '' ?>" style="top: 50%; inset-inline-end: 12px; transform: translateY(-50%); text-decoration: none; font-size: 14px;" title="<?= Helpers::e(I18n::t('cancel_btn')) ?>" aria-label="Clear">
+                    ✕
+                </button>
             </div>
         </div>
 
         <!-- Status Filter Dropdown -->
         <div class="col-12 col-md-4 col-lg-4">
-            <select name="is_active" class="form-select tamoza-input">
+            <select id="linkStatusFilterSelect" name="is_active" class="form-select tamoza-input">
                 <option value=""><?= Helpers::e(I18n::t('all_statuses')) ?></option>
                 <option value="1" <?= $activeFilter === '1' ? 'selected' : '' ?>><?= Helpers::e(I18n::t('active_only')) ?></option>
                 <option value="0" <?= $activeFilter === '0' ? 'selected' : '' ?>><?= Helpers::e(I18n::t('paused_only')) ?></option>
@@ -70,10 +73,8 @@ $activeFilter = $_GET['is_active'] ?? '';
 
         <!-- Filter & Reset Actions -->
         <div class="col-12 col-md-3 col-lg-3 d-flex gap-2">
-            <button type="submit" class="btn btn-tamoza-secondary flex-grow-1"><?= Helpers::e(I18n::t('filter_btn')) ?></button>
-            <?php if ($search !== '' || $activeFilter !== ''): ?>
-                <a href="<?= Helpers::baseUrl('index.php?page=links') ?>" class="btn btn-tamoza-subtle px-3"><?= Helpers::e(I18n::t('cancel_btn')) ?></a>
-            <?php endif; ?>
+            <button type="submit" id="applySearchFilterBtn" class="btn btn-tamoza-secondary flex-grow-1"><?= Helpers::e(I18n::t('filter_btn')) ?></button>
+            <a href="<?= Helpers::baseUrl('index.php?page=links') ?>" id="resetFiltersLink" class="btn btn-tamoza-subtle px-3 <?= ($search === '' && $activeFilter === '') ? 'd-none' : '' ?>"><?= Helpers::e(I18n::t('cancel_btn')) ?></a>
         </div>
     </form>
 </div>
@@ -110,7 +111,12 @@ $activeFilter = $_GET['is_active'] ?? '';
                             $isExpired = !empty($l['expires_at']) && strtotime($l['expires_at']) <= time();
                             $isLimitReached = !empty($l['click_limit']) && (int)$l['total_clicks'] >= (int)$l['click_limit'];
                         ?>
-                        <tr>
+                        <tr class="link-table-row" 
+                            data-slug="<?= Helpers::e(mb_strtolower($l['slug'])) ?>" 
+                            data-title="<?= Helpers::e(mb_strtolower($l['title'] ?? '')) ?>" 
+                            data-target-url="<?= Helpers::e(mb_strtolower($l['target_url'])) ?>" 
+                            data-is-active="<?= (int)$l['is_active'] ?>"
+                        >
                             <!-- Slug, Title & Destination URL -->
                             <td>
                                 <div class="d-flex flex-column gap-1">
@@ -292,6 +298,12 @@ $activeFilter = $_GET['is_active'] ?? '';
                             </td>
                         </tr>
                     <?php endforeach; ?>
+                    <tr id="noLiveSearchResultsRow" class="d-none">
+                        <td colspan="5" class="text-center py-5 text-secondary">
+                            <div class="display-6 mb-2 text-indigo"><?= Icon::get('search', '', 36) ?></div>
+                            <p class="mb-0 fw-medium"><?= Helpers::e(I18n::t('no_links_found')) ?></p>
+                        </td>
+                    </tr>
                 <?php endif; ?>
             </tbody>
         </table>
@@ -708,5 +720,136 @@ document.addEventListener('DOMContentLoaded', function () {
             })
             .catch(err => console.error(err));
     });
+
+    // 5. Instant Real-Time Search & Status Filtering (No Enter key required)
+    const liveSearchInput = document.getElementById('linkLiveSearchInput');
+    const statusFilterSelect = document.getElementById('linkStatusFilterSelect');
+    const clearSearchBtn = document.getElementById('clearSearchInputBtn');
+    const resetFiltersLink = document.getElementById('resetFiltersLink');
+    const searchForm = document.getElementById('linkFilterForm');
+    const linkRows = document.querySelectorAll('.link-table-row');
+    const noResultsRow = document.getElementById('noLiveSearchResultsRow');
+
+    function applyInstantFilter() {
+        if (!liveSearchInput) return;
+        const q = liveSearchInput.value.trim().toLowerCase();
+        const statusVal = statusFilterSelect ? statusFilterSelect.value : '';
+
+        // Toggle clear 'X' button inside search field
+        if (clearSearchBtn) {
+            if (q.length > 0) {
+                clearSearchBtn.classList.remove('d-none');
+            } else {
+                clearSearchBtn.classList.add('d-none');
+            }
+        }
+
+        // Toggle reset cancel button
+        if (resetFiltersLink) {
+            if (q.length > 0 || statusVal !== '') {
+                resetFiltersLink.classList.remove('d-none');
+            } else {
+                resetFiltersLink.classList.add('d-none');
+            }
+        }
+
+        let visibleCount = 0;
+        linkRows.forEach(function (row) {
+            const slug = (row.getAttribute('data-slug') || '').toLowerCase();
+            const title = (row.getAttribute('data-title') || '').toLowerCase();
+            const target = (row.getAttribute('data-target-url') || '').toLowerCase();
+            const isActive = row.getAttribute('data-is-active');
+
+            const matchesSearch = !q || slug.includes(q) || title.includes(q) || target.includes(q);
+            const matchesStatus = statusVal === '' || isActive === statusVal;
+
+            if (matchesSearch && matchesStatus) {
+                row.style.display = '';
+                visibleCount++;
+            } else {
+                row.style.display = 'none';
+            }
+        });
+
+        if (noResultsRow) {
+            if (visibleCount === 0 && linkRows.length > 0) {
+                noResultsRow.classList.remove('d-none');
+            } else {
+                noResultsRow.classList.add('d-none');
+            }
+        }
+
+        // Update URL state smoothly without reloading page
+        updateUrlParams(q, statusVal);
+    }
+
+    let urlDebounceTimer = null;
+    function updateUrlParams(q, statusVal) {
+        clearTimeout(urlDebounceTimer);
+        urlDebounceTimer = setTimeout(() => {
+            try {
+                const url = new URL(window.location.href);
+                if (q) {
+                    url.searchParams.set('search', q);
+                } else {
+                    url.searchParams.delete('search');
+                }
+                if (statusVal !== '') {
+                    url.searchParams.set('is_active', statusVal);
+                } else {
+                    url.searchParams.delete('is_active');
+                }
+                window.history.replaceState(null, '', url.toString());
+            } catch (err) {}
+        }, 250);
+    }
+
+    if (liveSearchInput) {
+        // Instant search on every keystroke, backspace, paste, and cut
+        liveSearchInput.addEventListener('input', applyInstantFilter);
+
+        // Prevent page reload if user presses Enter
+        liveSearchInput.addEventListener('keydown', function (e) {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                applyInstantFilter();
+            }
+        });
+    }
+
+    if (statusFilterSelect) {
+        statusFilterSelect.addEventListener('change', applyInstantFilter);
+    }
+
+    if (searchForm) {
+        searchForm.addEventListener('submit', function (e) {
+            e.preventDefault();
+            applyInstantFilter();
+        });
+    }
+
+    if (clearSearchBtn) {
+        clearSearchBtn.addEventListener('click', function () {
+            if (liveSearchInput) {
+                liveSearchInput.value = '';
+                liveSearchInput.focus();
+                applyInstantFilter();
+            }
+        });
+    }
+
+    if (resetFiltersLink) {
+        resetFiltersLink.addEventListener('click', function (e) {
+            e.preventDefault();
+            if (liveSearchInput) liveSearchInput.value = '';
+            if (statusFilterSelect) statusFilterSelect.value = '';
+            applyInstantFilter();
+        });
+    }
+
+    // Run once on load if search or filter was pre-filled
+    if (liveSearchInput && (liveSearchInput.value.trim() !== '' || (statusFilterSelect && statusFilterSelect.value !== ''))) {
+        applyInstantFilter();
+    }
 });
 </script>

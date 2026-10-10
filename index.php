@@ -721,7 +721,7 @@ switch ($page) {
     case 'links':
         $activePage = 'links';
         $pageTitle = I18n::t('links_title');
-        $links = LinkManager::getAll($_GET);
+        $links = LinkManager::getAll();
         require __DIR__ . '/views/layout/header.php';
         require __DIR__ . '/views/dashboard/links.php';
         require __DIR__ . '/views/layout/footer.php';
