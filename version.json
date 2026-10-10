@@ -1,7 +1,7 @@
 {
-    "version": "1.0.13",
+    "version": "1.0.14",
     "release_date": "2026-10-10",
-    "name": "AtharLink v1.0.13",
-    "changelog": "Balanced settings dashboard cards layout and implemented instant hybrid version update checking.",
+    "name": "AtharLink v1.0.14",
+    "changelog": "Display official full country names across click analytics, visitor tables, logs, and report cards instead of ISO abbreviations.",
     "min_php": "8.1"
 }

@@ -171,7 +171,7 @@ $period = $stats['period'] ?? '30d';
                                 <tr>
                                     <td>
                                         <span class="tamoza-badge badge-indigo me-1"><?= Helpers::e($c['country_code']) ?></span>
-                                        <?= Helpers::e($c['country_code'] === 'XX' ? I18n::t('unknown_country') : $c['country_code']) ?>
+                                        <span class="fw-medium"><?= Helpers::e($c['country_name'] ?? Helpers::getCountryName($c['country_code'])) ?></span>
                                     </td>
                                     <td class="text-end fw-bold"><?= number_format($c['count']) ?></td>
                                     <td class="text-end text-secondary"><?= $pct ?>%</td>
@@ -487,7 +487,10 @@ $period = $stats['period'] ?? '30d';
                                         <span class="text-secondary small">/<?= Helpers::e($act['slug']) ?></span>
                                     </td>
                                     <td>
-                                        <span class="tamoza-badge badge-indigo"><?= Helpers::e($act['country_code']) ?></span>
+                                        <div class="d-flex align-items-center gap-1">
+                                            <span class="tamoza-badge badge-indigo"><?= Helpers::e($act['country_code']) ?></span>
+                                            <span class="small fw-medium text-truncate" style="max-width: 140px;" title="<?= Helpers::e($act['country_name'] ?? Helpers::getCountryName($act['country_code'])) ?>"><?= Helpers::e($act['country_name'] ?? Helpers::getCountryName($act['country_code'])) ?></span>
+                                        </div>
                                     </td>
                                     <td>
                                         <span class="small text-secondary"><?= Helpers::e($act['device_type']) ?></span>

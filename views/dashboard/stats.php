@@ -171,7 +171,10 @@ $trackUrl = Helpers::trackingUrl($link['slug']);
                         <?php else: ?>
                             <?php foreach ($stats['countries'] as $c): ?>
                                 <tr>
-                                    <td><span class="tamoza-badge badge-indigo me-1"><?= Helpers::e($c['country_code']) ?></span> <?= Helpers::e($c['country_code']) ?></td>
+                                    <td>
+                                        <span class="tamoza-badge badge-indigo me-1"><?= Helpers::e($c['country_code']) ?></span>
+                                        <span class="fw-medium"><?= Helpers::e($c['country_name'] ?? Helpers::getCountryName($c['country_code'])) ?></span>
+                                    </td>
                                     <td class="text-end fw-bold"><?= number_format($c['count']) ?></td>
                                 </tr>
                             <?php endforeach; ?>
@@ -222,7 +225,12 @@ $trackUrl = Helpers::trackingUrl($link['slug']);
                     <?php foreach ($stats['recent_logs'] as $log): ?>
                         <tr>
                             <td><code class="text-primary fw-medium"><?= Helpers::e(!empty($log['ip_address']) ? $log['ip_address'] : ($log['ip_hash'] ? substr($log['ip_hash'], 0, 14) . '...' : '—')) ?></code></td>
-                            <td><span class="tamoza-badge badge-indigo"><?= Helpers::e($log['country_code']) ?></span></td>
+                            <td>
+                                <div class="d-flex align-items-center gap-1">
+                                    <span class="tamoza-badge badge-indigo"><?= Helpers::e($log['country_code']) ?></span>
+                                    <span class="small fw-medium text-secondary text-truncate" style="max-width: 140px;" title="<?= Helpers::e($log['country_name'] ?? Helpers::getCountryName($log['country_code'])) ?>"><?= Helpers::e($log['country_name'] ?? Helpers::getCountryName($log['country_code'])) ?></span>
+                                </div>
+                            </td>
                             <td>
                                 <?= (int)$log['is_unique'] === 1 ? '<span class="tamoza-badge badge-success">' . I18n::t('type_unique_badge') . '</span>' : '<span class="tamoza-badge badge-muted">' . I18n::t('type_repeat_badge') . '</span>' ?>
                             </td>

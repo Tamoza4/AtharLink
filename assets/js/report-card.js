@@ -252,18 +252,27 @@
                 ctx.textAlign = 'center';
                 ctx.fillText(c.country_code || 'XX', badgeBoxX + 17, itemY);
 
-                // Count text
+                // Country name text
+                const countryText = c.country_name || c.country_code || 'XX';
+                const dispCountry = countryText.length > 16 ? countryText.slice(0, 15) + '..' : countryText;
                 ctx.fillStyle = '#E2E8F0';
-                ctx.font = 'bold 13px ' + font;
+                ctx.font = '600 11.5px ' + font;
+                ctx.textAlign = rtl ? 'right' : 'left';
+                const nameX = rtl ? col1X + colW - 65 : col1X + 65;
+                ctx.fillText(dispCountry, nameX, itemY - 3);
+
+                // Count text
+                ctx.fillStyle = '#94A3B8';
+                ctx.font = 'bold 12px ' + font;
                 ctx.textAlign = rtl ? 'left' : 'right';
                 const countX = rtl ? col1X + 20 : col1X + colW - 20;
-                ctx.fillText(formatNumber(count), countX, itemY);
+                ctx.fillText(formatNumber(count), countX, itemY - 3);
 
                 // Mini progress bar
-                const barX = rtl ? col1X + 60 : col1X + 65;
-                const barW = colW - 130;
-                drawRoundRect(ctx, barX, itemY - 6, barW, 6, 3, 'rgba(255, 255, 255, 0.08)');
-                drawRoundRect(ctx, barX, itemY - 6, Math.max(8, barW * ratio), 6, 3, '#6366F1');
+                const barX = rtl ? col1X + 20 : col1X + 65;
+                const barW = colW - 85;
+                drawRoundRect(ctx, barX, itemY + 6, barW, 4, 2, 'rgba(255, 255, 255, 0.08)');
+                drawRoundRect(ctx, barX, itemY + 6, Math.max(6, barW * ratio), 4, 2, '#6366F1');
             });
         }
 
@@ -579,8 +588,9 @@
                 ctx.textAlign = rtl ? 'right' : 'left';
                 ctx.fillStyle = '#CBD5E1';
                 ctx.font = '600 12.5px ' + font;
-                const cX = rtl ? col1X + col3W - 18 : col1X + 18;
-                ctx.fillText('● ' + (c.country_code || 'XX'), cX, cY);
+                const countryText = (c.country_name || c.country_code || 'XX');
+                const dispCountry = countryText.length > 20 ? countryText.slice(0, 18) + '..' : countryText;
+                ctx.fillText('● ' + dispCountry, cX, cY);
 
                 ctx.textAlign = rtl ? 'left' : 'right';
                 ctx.fillStyle = '#38BDF8';

@@ -748,6 +748,10 @@ class LinkManager
         ");
         $geoStmt->execute([':d' => $filterDate]);
         $countries = $geoStmt->fetchAll();
+        foreach ($countries as &$c) {
+            $c['country_name'] = Helpers::getCountryName($c['country_code'] ?? 'XX');
+        }
+        unset($c);
 
         // 12. Top Performing Links Leaderboard
         $topLinksStmt = $pdo->prepare("
@@ -786,6 +790,10 @@ class LinkManager
             LIMIT 8
         ");
         $recentActivity = $recentStmt ? $recentStmt->fetchAll() : [];
+        foreach ($recentActivity as &$act) {
+            $act['country_name'] = Helpers::getCountryName($act['country_code'] ?? 'XX');
+        }
+        unset($act);
 
         return [
             'total_links'        => (int)($linksInfo['total_links'] ?? 0),
@@ -862,6 +870,11 @@ class LinkManager
             GROUP BY country_code ORDER BY count DESC LIMIT 10
         ");
         $geoStmt->execute([':lid' => $linkId, ':d' => $filterDate]);
+        $countries = $geoStmt->fetchAll();
+        foreach ($countries as &$c) {
+            $c['country_name'] = Helpers::getCountryName($c['country_code'] ?? 'XX');
+        }
+        unset($c);
 
         // Recent Click logs
         $logsStmt = $pdo->prepare("
@@ -871,6 +884,11 @@ class LinkManager
             LIMIT 25
         ");
         $logsStmt->execute([':lid' => $linkId]);
+        $recentLogs = $logsStmt->fetchAll();
+        foreach ($recentLogs as &$log) {
+            $log['country_name'] = Helpers::getCountryName($log['country_code'] ?? 'XX');
+        }
+        unset($log);
 
         return [
             'link'            => $link,
@@ -880,8 +898,8 @@ class LinkManager
             'timeline'        => self::getTimelineSeries($linkId, $period),
             'referrers'       => $refStmt->fetchAll(),
             'devices'         => $devStmt->fetchAll(),
-            'countries'       => $geoStmt->fetchAll(),
-            'recent_logs'     => $logsStmt->fetchAll(),
+            'countries'       => $countries,
+            'recent_logs'     => $recentLogs,
             'period'          => $period
         ];
     }
@@ -1057,7 +1075,7 @@ class LinkManager
                 $c['title'] ?? '',
                 !empty($c['ip_address']) ? $c['ip_address'] : ($c['ip_hash'] ?? ''),
                 $c['is_unique'] ? I18n::t('yes_label') : I18n::t('no_label'),
-                $c['country_code'],
+                Helpers::getCountryName($c['country_code']) . ($c['country_code'] !== 'XX' ? ' (' . $c['country_code'] . ')' : ''),
                 $c['referrer_domain'] ?? I18n::t('direct_referrer'),
                 $c['device_type'],
                 $c['browser'],
