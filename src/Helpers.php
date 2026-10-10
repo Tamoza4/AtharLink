@@ -104,6 +104,72 @@ class Helpers
     }
 
     /**
+     * Get configured application timezone
+     */
+    public static function getTimezone(bool $force = false): string
+    {
+        static $cachedTz = null;
+        if ($cachedTz === null || $force) {
+            try {
+                $tz = Database::getSetting('app_timezone', 'UTC');
+                $cachedTz = in_array($tz, timezone_identifiers_list(), true) ? $tz : 'UTC';
+            } catch (\Throwable) {
+                $cachedTz = 'UTC';
+            }
+        }
+        return $cachedTz;
+    }
+
+    /**
+     * Apply configured application timezone to PHP runtime
+     */
+    public static function applyTimezone(bool $force = false): void
+    {
+        static $applied = false;
+        if (!$applied || $force) {
+            $applied = true;
+            $tz = self::getTimezone($force);
+            date_default_timezone_set($tz);
+        }
+    }
+
+    /**
+     * Get SQLite datetime modifier for current application timezone (e.g. '+180 minutes')
+     */
+    public static function getTimezoneModifier(bool $force = false): string
+    {
+        static $cachedModifier = null;
+        if ($cachedModifier === null || $force) {
+            $tzName = self::getTimezone($force);
+            try {
+                $tz = new \DateTimeZone($tzName);
+                $offsetSeconds = $tz->getOffset(new \DateTime('now', new \DateTimeZone('UTC')));
+                $offsetMinutes = (int)round($offsetSeconds / 60);
+                $cachedModifier = ($offsetMinutes >= 0 ? '+' : '') . $offsetMinutes . ' minutes';
+            } catch (\Throwable) {
+                $cachedModifier = '+0 minutes';
+            }
+        }
+        return $cachedModifier;
+    }
+
+    /**
+     * Format a UTC database timestamp into application timezone
+     */
+    public static function formatDate(?string $utcDate, string $format = 'Y-m-d H:i'): string
+    {
+        if (empty($utcDate)) {
+            return '';
+        }
+        self::applyTimezone();
+        $ts = strtotime($utcDate . (str_contains($utcDate, 'Z') || str_contains($utcDate, '+') ? '' : ' UTC'));
+        if ($ts === false) {
+            return $utcDate;
+        }
+        return date($format, $ts);
+    }
+
+    /**
      * Get Client IP Address with proxy support
      */
     public static function getClientIp(): string
@@ -489,7 +555,16 @@ class Helpers
      */
     public static function timeAgo(string|int $datetime): string
     {
-        $timestamp = is_numeric($datetime) ? (int)$datetime : strtotime((string)$datetime);
+        if (is_numeric($datetime)) {
+            $timestamp = (int)$datetime;
+        } else {
+            $str = (string)$datetime;
+            if (!str_contains($str, 'Z') && !str_contains($str, '+') && !str_contains($str, 'UTC')) {
+                $str .= ' UTC';
+            }
+            $timestamp = strtotime($str);
+        }
+
         if (!$timestamp) {
             return I18n::t('not_available');
         }

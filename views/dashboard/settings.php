@@ -19,7 +19,32 @@ $hoursWindow = round($uniquenessWindow / 3600, 1);
 $guestRedirectUrl = Database::getSetting('guest_redirect_url', '');
 $guestRedirectEnabled = Database::getSetting('guest_redirect_enabled', !empty($guestRedirectUrl) ? '1' : '0') === '1';
 $adminLoginSlug = Database::getSetting('admin_login_slug', 'admin');
+$appTimezone = Database::getSetting('app_timezone', 'UTC');
 $updateInfo = Updater::check();
+
+$popularTimezones = [
+    'Asia/Riyadh'       => '(UTC+03:00) الرياض، مكة المكرمة (KSA)',
+    'Asia/Dubai'        => '(UTC+04:00) دبي، أبوظبي (UAE)',
+    'Africa/Cairo'      => '(UTC+02:00) القاهرة (Egypt)',
+    'Asia/Kuwait'       => '(UTC+03:00) الكويت (Kuwait)',
+    'Asia/Qatar'        => '(UTC+03:00) الدوحة (Qatar)',
+    'Asia/Bahrain'      => '(UTC+03:00) المنامة (Bahrain)',
+    'Asia/Muscat'       => '(UTC+04:00) مسقط (Oman)',
+    'Asia/Amman'        => '(UTC+03:00) عمّان (Jordan)',
+    'Asia/Baghdad'      => '(UTC+03:00) بغداد (Iraq)',
+    'Asia/Beirut'       => '(UTC+02:00) بيروت (Lebanon)',
+    'Asia/Damascus'     => '(UTC+03:00) دمشق (Syria)',
+    'Africa/Casablanca' => '(UTC+01:00) الدار البيضاء (Morocco)',
+    'Africa/Algiers'    => '(UTC+01:00) الجزائر (Algeria)',
+    'Africa/Tunis'      => '(UTC+01:00) تونس (Tunisia)',
+    'Africa/Tripoli'    => '(UTC+02:00) طرابلس (Libya)',
+    'Africa/Khartoum'   => '(UTC+02:00) الخرطوم (Sudan)',
+    'UTC'               => '(UTC+00:00) التوقيت العالمي الموحد (UTC)',
+    'Europe/London'     => '(UTC+00:00) لندن (London / GMT)',
+    'Europe/Paris'      => '(UTC+01:00) باريس (Paris / CET)',
+    'Europe/Istanbul'   => '(UTC+03:00) إسطنبول (Istanbul)',
+    'America/New_York'  => '(UTC-05:00) نيويورك (New York / EST)',
+];
 ?>
 
 <div class="mb-4">
@@ -118,6 +143,44 @@ $updateInfo = Updater::check();
                     <label class="form-label small fw-semibold"><?= I18n::t('uniqueness_window_label') ?></label>
                     <input type="number" step="0.5" min="1" max="168" name="uniqueness_hours" class="form-control tamoza-input" value="<?= $hoursWindow ?>" required>
                     <small class="text-secondary d-block mt-1"><?= I18n::t('uniqueness_window_hint') ?></small>
+                </div>
+
+                <div class="mb-4">
+                    <div class="d-flex align-items-center justify-content-between mb-2">
+                        <label class="form-label small fw-semibold mb-0" for="appTimezoneSelect">
+                            <?= I18n::t('app_timezone_label') ?>
+                        </label>
+                        <button type="button" class="btn btn-sm btn-tamoza-secondary d-inline-flex align-items-center gap-1 py-1 px-2" id="detectTimezoneBtn" style="font-size: 11px;">
+                            <?= Icon::get('compass', '', 12) ?>
+                            <span><?= I18n::t('detect_timezone_btn') ?></span>
+                        </button>
+                    </div>
+                    <select name="app_timezone" id="appTimezoneSelect" class="form-select tamoza-input font-monospace">
+                        <optgroup label="<?= Helpers::e(I18n::t('popular_timezones_group')) ?>">
+                            <?php foreach ($popularTimezones as $tzCode => $tzLabel): ?>
+                                <option value="<?= Helpers::e($tzCode) ?>" <?= $appTimezone === $tzCode ? 'selected' : '' ?>>
+                                    <?= Helpers::e($tzCode . ' — ' . $tzLabel) ?>
+                                </option>
+                            <?php endforeach; ?>
+                        </optgroup>
+                        <optgroup label="<?= Helpers::e(I18n::t('all_timezones_group')) ?>">
+                            <?php 
+                            $allTz = timezone_identifiers_list();
+                            foreach ($allTz as $tzIdentifier): 
+                                if (isset($popularTimezones[$tzIdentifier])) continue;
+                            ?>
+                                <option value="<?= Helpers::e($tzIdentifier) ?>" <?= $appTimezone === $tzIdentifier ? 'selected' : '' ?>>
+                                    <?= Helpers::e($tzIdentifier) ?>
+                                </option>
+                            <?php endforeach; ?>
+                        </optgroup>
+                    </select>
+                    <div class="d-flex align-items-center justify-content-between mt-1">
+                        <small class="text-secondary"><?= I18n::t('app_timezone_hint') ?></small>
+                        <span id="tzDetectedBadge" class="badge bg-success-subtle text-success small d-none" style="font-size: 11px;">
+                            <?= I18n::t('timezone_detected_badge') ?>
+                        </span>
+                    </div>
                 </div>
 
                 <!-- Access & Redirection Security -->
@@ -533,6 +596,41 @@ document.addEventListener('DOMContentLoaded', function () {
                 if (redirectInput) redirectInput.focus();
             } else {
                 redirectContainer.classList.add('d-none');
+            }
+        });
+    }
+
+    // Timezone Auto-Detection
+    const detectTzBtn = document.getElementById('detectTimezoneBtn');
+    const tzSelect = document.getElementById('appTimezoneSelect');
+    const tzBadge = document.getElementById('tzDetectedBadge');
+    if (detectTzBtn && tzSelect) {
+        detectTzBtn.addEventListener('click', function () {
+            try {
+                const clientTz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+                if (clientTz) {
+                    let optionExists = false;
+                    for (let i = 0; i < tzSelect.options.length; i++) {
+                        if (tzSelect.options[i].value === clientTz) {
+                            tzSelect.selectedIndex = i;
+                            optionExists = true;
+                            break;
+                        }
+                    }
+                    if (!optionExists) {
+                        const newOpt = document.createElement('option');
+                        newOpt.value = clientTz;
+                        newOpt.textContent = clientTz;
+                        newOpt.selected = true;
+                        tzSelect.appendChild(newOpt);
+                    }
+                    if (tzBadge) {
+                        tzBadge.classList.remove('d-none');
+                        setTimeout(() => tzBadge.classList.add('d-none'), 3500);
+                    }
+                }
+            } catch (err) {
+                console.warn('Timezone detection error:', err);
             }
         });
     }

@@ -251,6 +251,12 @@ class I18n
                 'site_title_label'          => 'اسم المنصة',
                 'uniqueness_window_label'   => 'نافذة احتساب النقرة الفريدة (بالساعات)',
                 'uniqueness_window_hint'    => 'الافتراضي 24 ساعة (خلال هذه المدة لن تحتسب النقرات المتكررة من نفس الزائر كنقرة فريدة).',
+                'app_timezone_label'        => 'المنطقة الزمنية للمنصة (Timezone)',
+                'app_timezone_hint'         => 'تُستخدم لحساب ساعات الذروة، منحنيات النشاط اليومية بدقة، وتواريخ انتهاء الصلاحية والتصدير.',
+                'detect_timezone_btn'       => 'اكتشاف من جهازي تلقائياً',
+                'timezone_detected_badge'   => 'تم الاكتشاف',
+                'popular_timezones_group'   => 'أشهر المناطق الزمنية والدول العربية',
+                'all_timezones_group'       => 'كافة المناطق الزمنية العالمية (All Timezones)',
                 'save_settings_btn'         => 'حفظ الإعدادات',
                 'security_routing_title'    => 'أمان الوصول والتوجيه الذكي',
                 'security_routing_desc'     => 'إخفاء لوحة التحكم وتوجيه الزوار غير المصرح لهم، وتخصيص مسار الدخول السري.',
@@ -643,6 +649,7 @@ class I18n
                 'field_guest_redirect_enabled' => 'تفعيل تحويل الزوار',
                 'field_guest_redirect_url'      => 'رابط تحويل الزوار',
                 'field_admin_login_slug'        => 'مسار الدخول المخصص',
+                'field_app_timezone'            => 'المنطقة الزمنية',
                 'raw_json_toggle'           => 'البيانات البرمجية التفصيلية (JSON)',
 
                 // Footer
@@ -837,6 +844,12 @@ class I18n
                 'site_title_label'          => 'Platform Name',
                 'uniqueness_window_label'   => 'Unique Click Window (Hours)',
                 'uniqueness_window_hint'    => 'Default 24 hours (subsequent clicks from the same visitor inside this window count as repeat clicks).',
+                'app_timezone_label'        => 'Platform Timezone',
+                'app_timezone_hint'         => 'Used to compute peak traffic hours, 24-hour activity curves, link expiration dates, and data exports.',
+                'detect_timezone_btn'       => 'Detect from My Device',
+                'timezone_detected_badge'   => 'Detected',
+                'popular_timezones_group'   => 'Popular & Regional Timezones',
+                'all_timezones_group'       => 'All Worldwide Timezones',
                 'save_settings_btn'         => 'Save Settings',
                 'security_routing_title'    => 'Access & Redirection Security',
                 'security_routing_desc'     => 'Hide dashboard and redirect unauthorized visitors, and configure secret entrance slug.',
@@ -1229,6 +1242,7 @@ class I18n
                 'field_guest_redirect_enabled' => 'Guest Redirection Enabled',
                 'field_guest_redirect_url'      => 'Guest Redirect URL',
                 'field_admin_login_slug'        => 'Admin Entrance Slug',
+                'field_app_timezone'            => 'Platform Timezone',
                 'raw_json_toggle'           => 'Technical Details (JSON)',
 
                 // Footer

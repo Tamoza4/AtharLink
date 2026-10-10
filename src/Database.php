@@ -40,6 +40,9 @@ class Database
                 self::$instance->exec('PRAGMA busy_timeout = 5000;');
 
                 self::ensureMigrations(self::$instance);
+
+                // Apply application timezone once database connection is established
+                Helpers::applyTimezone();
             } catch (PDOException $e) {
                 error_log('AtharLink DB Connection Error: ' . $e->getMessage());
                 throw new PDOException('Could not connect to AtharLink database: ' . $e->getMessage());

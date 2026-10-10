@@ -475,18 +475,28 @@ if ($action === 'save_settings' && $_SERVER['REQUEST_METHOD'] === 'POST') {
             exit;
         }
 
+        // Timezone validation & saving
+        $appTimezone = trim((string)($_POST['app_timezone'] ?? 'UTC'));
+        if (!in_array($appTimezone, timezone_identifiers_list(), true)) {
+            $appTimezone = 'UTC';
+        }
+
         Database::setSetting('site_title', $title);
         Database::setSetting('uniqueness_window', (string)$seconds);
         Database::setSetting('guest_redirect_enabled', $redirectEnabled);
         Database::setSetting('guest_redirect_url', $guestRedirect);
         Database::setSetting('admin_login_slug', $adminSlug);
+        Database::setSetting('app_timezone', $appTimezone);
+        Helpers::applyTimezone(true);
+        Helpers::getTimezoneModifier(true);
 
         AuditLogger::log('save_settings', 'Updated system settings: ' . $title, [
             'site_title'             => $title,
             'uniqueness_hours'       => $hours,
             'guest_redirect_enabled' => $redirectEnabled,
             'guest_redirect_url'     => $guestRedirect,
-            'admin_login_slug'       => $adminSlug
+            'admin_login_slug'       => $adminSlug,
+            'app_timezone'           => $appTimezone
         ]);
 
         $_SESSION['flash_success'] = I18n::t('settings_saved_success');

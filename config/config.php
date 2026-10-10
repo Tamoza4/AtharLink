@@ -36,7 +36,7 @@ if (!headers_sent() && php_sapi_name() !== 'cli') {
 
 // Application Constants
 define('APP_NAME', 'AtharLink');
-define('APP_VERSION', '1.0.8');
+define('APP_VERSION', '1.0.9');
 define('APP_ROOT', dirname(__DIR__));
 define('STORAGE_DIR', APP_ROOT . DIRECTORY_SEPARATOR . 'storage');
 define('DB_PATH', STORAGE_DIR . DIRECTORY_SEPARATOR . 'athar_database.sqlite');

@@ -584,10 +584,12 @@ class LinkManager
             ? round(($uniquePeriodClicks / $totalPeriodClicks) * 100, 1) 
             : 0.0;
 
+        $tzMod = Helpers::getTimezoneModifier();
+
         // 3. Click Peak Hours (0-23 hours distribution)
         $peakStmt = $pdo->prepare("
             SELECT 
-                strftime('%H', clicked_at) AS click_hour,
+                strftime('%H', datetime(clicked_at, :tzmod)) AS click_hour,
                 COUNT(*) AS count
             FROM clicks
             WHERE clicked_at >= :d
@@ -595,7 +597,7 @@ class LinkManager
             ORDER BY count DESC
             LIMIT 1
         ");
-        $peakStmt->execute([':d' => $filterDate]);
+        $peakStmt->execute([':d' => $filterDate, ':tzmod' => $tzMod]);
         $peakRow = $peakStmt->fetch();
         $peakHour = $peakRow ? sprintf('%02d:00 - %02d:00', (int)$peakRow['click_hour'], ((int)$peakRow['click_hour'] + 1) % 24) : I18n::t('not_available');
 
@@ -668,13 +670,13 @@ class LinkManager
 
         $hourlyStmt = $pdo->prepare("
             SELECT 
-                CAST(strftime('%H', clicked_at) AS INTEGER) AS hr,
+                CAST(strftime('%H', datetime(clicked_at, :tzmod)) AS INTEGER) AS hr,
                 COUNT(*) AS count
             FROM clicks
             WHERE clicked_at >= :d
             GROUP BY hr
         ");
-        $hourlyStmt->execute([':d' => $filterDate]);
+        $hourlyStmt->execute([':d' => $filterDate, ':tzmod' => $tzMod]);
         $hourlyRows = $hourlyStmt->fetchAll();
         foreach ($hourlyRows as $row) {
             $hr = (int)$row['hr'];
@@ -890,12 +892,13 @@ class LinkManager
     private static function getTimelineSeries(?int $linkId, string $period): array
     {
         $pdo = Database::getConnection();
+        $tzMod = Helpers::getTimezoneModifier();
 
         if ($period === '24h') {
             // Group by hour for last 24h
             $sql = "
                 SELECT 
-                    strftime('%Y-%m-%d %H:00', clicked_at) AS time_point,
+                    strftime('%Y-%m-%d %H:00', datetime(clicked_at, :tzmod)) AS time_point,
                     COUNT(*) AS total_clicks,
                     COALESCE(SUM(CASE WHEN is_unique = 1 THEN 1 ELSE 0 END), 0) AS unique_clicks
                 FROM clicks
@@ -910,7 +913,7 @@ class LinkManager
             $days = ($period === '7d') ? 7 : 30;
             $sql = "
                 SELECT 
-                    strftime('%Y-%m-%d', clicked_at) AS time_point,
+                    strftime('%Y-%m-%d', datetime(clicked_at, :tzmod)) AS time_point,
                     COUNT(*) AS total_clicks,
                     COALESCE(SUM(CASE WHEN is_unique = 1 THEN 1 ELSE 0 END), 0) AS unique_clicks
                 FROM clicks
@@ -922,7 +925,8 @@ class LinkManager
             $sql .= " GROUP BY time_point ORDER BY time_point ASC";
         }
 
-        $stmt = $pdo->query($sql);
+        $stmt = $pdo->prepare($sql);
+        $stmt->execute([':tzmod' => $tzMod]);
         $rows = $stmt->fetchAll();
 
         $labels = [];
@@ -993,7 +997,7 @@ class LinkManager
                 $l['is_active'] ? I18n::t('status_active') : I18n::t('status_paused'),
                 $l['total_clicks'],
                 $l['unique_clicks'],
-                $l['created_at']
+                Helpers::formatDate($l['created_at'], 'Y-m-d H:i:s')
             ]);
         }
 
@@ -1058,7 +1062,7 @@ class LinkManager
                 $c['device_type'],
                 $c['browser'],
                 $c['platform'],
-                $c['clicked_at']
+                Helpers::formatDate($c['clicked_at'], 'Y-m-d H:i:s')
             ]);
         }
 

@@ -101,7 +101,7 @@ $trackUrl = Helpers::trackingUrl($link['slug']);
                     <span class="tamoza-badge badge-danger fs-6"><?= I18n::t('status_disabled') ?></span>
                 <?php endif; ?>
             </div>
-            <span class="text-secondary small"><?= I18n::t('created_date_label') ?><?= date('Y-m-d H:i', strtotime($link['created_at'])) ?></span>
+            <span class="text-secondary small"><?= I18n::t('created_date_label') ?><?= Helpers::formatDate($link['created_at'], 'Y-m-d H:i') ?></span>
         </div>
     </div>
 </div>
@@ -231,7 +231,7 @@ $trackUrl = Helpers::trackingUrl($link['slug']);
                                 <span class="tamoza-badge badge-muted ms-1"><?= Helpers::e($log['device_type']) ?></span>
                             </td>
                             <td><?= Helpers::e($log['referrer_domain'] ?? I18n::t('direct_referrer')) ?></td>
-                            <td class="text-secondary"><?= Helpers::e($log['clicked_at']) ?></td>
+                            <td class="text-secondary"><?= Helpers::e(Helpers::formatDate($log['clicked_at'], 'Y-m-d H:i:s')) ?></td>
                         </tr>
                     <?php endforeach; ?>
                 <?php endif; ?>

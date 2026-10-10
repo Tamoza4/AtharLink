@@ -167,8 +167,8 @@ $getActionBadge = function (string $action): array {
                         <tr>
                             <!-- Timestamp -->
                             <td>
-                                <div class="fw-semibold small"><?= Helpers::e(date('Y-m-d', strtotime($log['created_at']))) ?></div>
-                                <div class="text-secondary smaller font-monospace"><?= Helpers::e(date('H:i:s', strtotime($log['created_at']))) ?></div>
+                                <div class="fw-semibold small"><?= Helpers::e(Helpers::formatDate($log['created_at'], 'Y-m-d')) ?></div>
+                                <div class="text-secondary smaller font-monospace"><?= Helpers::e(Helpers::formatDate($log['created_at'], 'H:i:s')) ?></div>
                             </td>
 
                             <!-- Admin Username -->

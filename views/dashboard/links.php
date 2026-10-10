@@ -179,7 +179,7 @@ $activeFilter = $_GET['is_active'] ?? '';
 
                             <!-- Created Date -->
                             <td class="text-secondary small text-nowrap">
-                                <?= date('Y-m-d', strtotime($l['created_at'])) ?>
+                                <?= Helpers::formatDate($l['created_at'], 'Y-m-d') ?>
                             </td>
 
                             <!-- Actions -->
