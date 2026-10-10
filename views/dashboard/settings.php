@@ -28,8 +28,97 @@ $updateInfo = Updater::check();
 </div>
 
 <div class="row g-4">
-    <!-- Left Column: API & Integration -->
+    <!-- Left Column: Updates & Integrations -->
     <div class="col-12 col-lg-6">
+        <!-- System Updates & Version Card -->
+        <div class="tamoza-card mb-4">
+            <div class="d-flex justify-content-between align-items-start mb-3">
+                <div>
+                    <h4 class="fw-bold mb-1 d-flex align-items-center gap-2">
+                        <?= Icon::get('cloud-download', 'text-indigo') ?>
+                        <span><?= I18n::t('updates_card_title') ?></span>
+                    </h4>
+                    <p class="text-secondary small mb-0"><?= I18n::t('updates_card_desc') ?></p>
+                </div>
+                <div id="updateStatusBadgeWrapper">
+                    <?php if (!empty($updateInfo['has_update'])): ?>
+                        <span id="updateStatusBadge" class="tamoza-badge badge-warning d-inline-flex align-items-center gap-1">
+                            <span class="pulse-dot"></span>
+                            <span><?= I18n::t('update_available_badge', ['version' => 'v' . $updateInfo['latest']]) ?></span>
+                        </span>
+                    <?php else: ?>
+                        <span id="updateStatusBadge" class="tamoza-badge badge-success d-inline-flex align-items-center gap-1">
+                            <?= Icon::get('check-circle', '', 14) ?>
+                            <span><?= I18n::t('system_up_to_date') ?></span>
+                        </span>
+                    <?php endif; ?>
+                </div>
+            </div>
+
+            <!-- Version Comparison Box -->
+            <div class="row g-3 mb-2">
+                <div class="col-6">
+                    <div class="p-3 rounded-4" style="background: rgba(99, 102, 241, 0.06); border: 1px solid var(--tamoza-border);">
+                        <span class="text-secondary small d-block mb-1"><?= I18n::t('current_version_label') ?></span>
+                        <span class="fs-5 fw-bold font-monospace text-primary">v<?= Helpers::e($updateInfo['current']) ?></span>
+                    </div>
+                </div>
+                <div class="col-6">
+                    <div class="p-3 rounded-4" style="background: rgba(16, 185, 129, 0.06); border: 1px solid var(--tamoza-border);">
+                        <span class="text-secondary small d-block mb-1"><?= I18n::t('latest_version_label') ?></span>
+                        <span id="updateLatestVersionDisplay" class="fs-5 fw-bold font-monospace <?= !empty($updateInfo['has_update']) ? 'text-warning' : 'text-success' ?>">
+                            v<?= Helpers::e(!empty($updateInfo['latest']) ? $updateInfo['latest'] : ($updateInfo['current'] ?? APP_VERSION)) ?>
+                        </span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- GitHub Source Link Hint -->
+            <div class="mb-3">
+                <a href="<?= Helpers::e($updateInfo['release_url']) ?>" target="_blank" class="text-secondary small text-decoration-none d-inline-flex align-items-center gap-1">
+                    <span><?= I18n::t('repo_url_label') ?>: Tamoza4/AtharLink</span>
+                    <?= Icon::get('external-link', '', 12) ?>
+                </a>
+            </div>
+
+            <?php if (!empty($updateInfo['has_update']) && !empty($updateInfo['release_notes'])): ?>
+                <div class="p-3 rounded-4 mb-3 small" style="background: rgba(0, 0, 0, 0.15); border: 1px solid var(--tamoza-border);">
+                    <div class="fw-semibold text-warning mb-1 d-flex align-items-center gap-1">
+                        <?= Icon::get('zap', '', 14) ?>
+                        <span><?= I18n::t('release_notes_label') ?> <?= Helpers::e($updateInfo['release_name']) ?></span>
+                    </div>
+                    <div class="text-secondary" style="max-height: 120px; overflow-y: auto; white-space: pre-wrap; font-size: 13px;"><?= Helpers::e($updateInfo['release_notes']) ?></div>
+                </div>
+            <?php endif; ?>
+
+            <!-- Action Controls -->
+            <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 pt-2 border-top" style="border-color: var(--tamoza-border) !important;">
+                <div class="d-flex align-items-center gap-2">
+                    <!-- Check for Updates Now Button -->
+                    <button type="button" id="checkUpdatesBtn" class="btn btn-tamoza-secondary d-inline-flex align-items-center gap-2">
+                        <span id="checkUpdatesIcon"><?= Icon::get('refresh', '', 14) ?></span>
+                        <span id="checkUpdatesText"><?= I18n::t('check_updates_btn') ?></span>
+                    </button>
+
+                    <!-- Trigger Interactive Update Modal (Always Active, Checks First) -->
+                    <button type="button" id="triggerUpdateBtn" class="btn <?= !empty($updateInfo['has_update']) ? 'btn-tamoza-primary' : 'btn-tamoza-secondary' ?> d-inline-flex align-items-center gap-2">
+                        <span id="triggerUpdateIcon"><?= Icon::get('rocket', '', 15) ?></span>
+                        <span id="triggerUpdateText"><?= I18n::t('update_now_btn') ?></span>
+                    </button>
+
+                    <!-- Rebuild & Repair Button -->
+                    <button type="button" id="triggerRebuildBtn" class="btn btn-tamoza-secondary d-inline-flex align-items-center gap-2" title="<?= I18n::t('rebuild_repair_btn') ?>">
+                        <span id="triggerRebuildIcon"><?= Icon::get('tool', '', 14) ?></span>
+                        <span id="triggerRebuildText"><?= I18n::t('rebuild_repair_btn') ?></span>
+                    </button>
+                </div>
+
+                <span id="updateCheckedDateDisplay" class="text-secondary small">
+                    <?= I18n::t('update_checking_hint', ['date' => !empty($updateInfo['cached_at']) ? date('Y-m-d H:i', (int)$updateInfo['cached_at']) : date('Y-m-d H:i')]) ?>
+                </span>
+            </div>
+        </div>
+
         <!-- API Token Card -->
         <div class="tamoza-card mb-4">
             <h4 class="fw-bold mb-3 d-flex align-items-center gap-2">
@@ -220,95 +309,6 @@ $updateInfo = Updater::check();
 
                 <small class="text-secondary d-block"><?= I18n::t('restore_hint') ?></small>
             </form>
-        </div>
-
-        <!-- System Updates & Version Card -->
-        <div class="tamoza-card mt-4">
-            <div class="d-flex justify-content-between align-items-start mb-3">
-                <div>
-                    <h4 class="fw-bold mb-1 d-flex align-items-center gap-2">
-                        <?= Icon::get('cloud-download', 'text-indigo') ?>
-                        <span><?= I18n::t('updates_card_title') ?></span>
-                    </h4>
-                    <p class="text-secondary small mb-0"><?= I18n::t('updates_card_desc') ?></p>
-                </div>
-                <div id="updateStatusBadgeWrapper">
-                    <?php if (!empty($updateInfo['has_update'])): ?>
-                        <span id="updateStatusBadge" class="tamoza-badge badge-warning d-inline-flex align-items-center gap-1">
-                            <span class="pulse-dot"></span>
-                            <span><?= I18n::t('update_available_badge', ['version' => 'v' . $updateInfo['latest']]) ?></span>
-                        </span>
-                    <?php else: ?>
-                        <span id="updateStatusBadge" class="tamoza-badge badge-success d-inline-flex align-items-center gap-1">
-                            <?= Icon::get('check-circle', '', 14) ?>
-                            <span><?= I18n::t('system_up_to_date') ?></span>
-                        </span>
-                    <?php endif; ?>
-                </div>
-            </div>
-
-            <!-- Version Comparison Box -->
-            <div class="row g-3 mb-2">
-                <div class="col-6">
-                    <div class="p-3 rounded-4" style="background: rgba(99, 102, 241, 0.06); border: 1px solid var(--tamoza-border);">
-                        <span class="text-secondary small d-block mb-1"><?= I18n::t('current_version_label') ?></span>
-                        <span class="fs-5 fw-bold font-monospace text-primary">v<?= Helpers::e($updateInfo['current']) ?></span>
-                    </div>
-                </div>
-                <div class="col-6">
-                    <div class="p-3 rounded-4" style="background: rgba(16, 185, 129, 0.06); border: 1px solid var(--tamoza-border);">
-                        <span class="text-secondary small d-block mb-1"><?= I18n::t('latest_version_label') ?></span>
-                        <span id="updateLatestVersionDisplay" class="fs-5 fw-bold font-monospace <?= !empty($updateInfo['has_update']) ? 'text-warning' : 'text-success' ?>">
-                            v<?= Helpers::e(!empty($updateInfo['latest']) ? $updateInfo['latest'] : ($updateInfo['current'] ?? APP_VERSION)) ?>
-                        </span>
-                    </div>
-                </div>
-            </div>
-
-            <!-- GitHub Source Link Hint -->
-            <div class="mb-3">
-                <a href="<?= Helpers::e($updateInfo['release_url']) ?>" target="_blank" class="text-secondary small text-decoration-none d-inline-flex align-items-center gap-1">
-                    <span><?= I18n::t('repo_url_label') ?>: Tamoza4/AtharLink</span>
-                    <?= Icon::get('external-link', '', 12) ?>
-                </a>
-            </div>
-
-            <?php if (!empty($updateInfo['has_update']) && !empty($updateInfo['release_notes'])): ?>
-                <div class="p-3 rounded-4 mb-3 small" style="background: rgba(0, 0, 0, 0.15); border: 1px solid var(--tamoza-border);">
-                    <div class="fw-semibold text-warning mb-1 d-flex align-items-center gap-1">
-                        <?= Icon::get('zap', '', 14) ?>
-                        <span><?= I18n::t('release_notes_label') ?> <?= Helpers::e($updateInfo['release_name']) ?></span>
-                    </div>
-                    <div class="text-secondary" style="max-height: 120px; overflow-y: auto; white-space: pre-wrap; font-size: 13px;"><?= Helpers::e($updateInfo['release_notes']) ?></div>
-                </div>
-            <?php endif; ?>
-
-            <!-- Action Controls -->
-            <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 pt-2 border-top" style="border-color: var(--tamoza-border) !important;">
-                <div class="d-flex align-items-center gap-2">
-                    <!-- Check for Updates Now Button -->
-                    <button type="button" id="checkUpdatesBtn" class="btn btn-tamoza-secondary d-inline-flex align-items-center gap-2">
-                        <span id="checkUpdatesIcon"><?= Icon::get('refresh', '', 14) ?></span>
-                        <span id="checkUpdatesText"><?= I18n::t('check_updates_btn') ?></span>
-                    </button>
-
-                    <!-- Trigger Interactive Update Modal (Always Active, Checks First) -->
-                    <button type="button" id="triggerUpdateBtn" class="btn <?= !empty($updateInfo['has_update']) ? 'btn-tamoza-primary' : 'btn-tamoza-secondary' ?> d-inline-flex align-items-center gap-2">
-                        <span id="triggerUpdateIcon"><?= Icon::get('rocket', '', 15) ?></span>
-                        <span id="triggerUpdateText"><?= I18n::t('update_now_btn') ?></span>
-                    </button>
-
-                    <!-- Rebuild & Repair Button -->
-                    <button type="button" id="triggerRebuildBtn" class="btn btn-tamoza-secondary d-inline-flex align-items-center gap-2" title="<?= I18n::t('rebuild_repair_btn') ?>">
-                        <span id="triggerRebuildIcon"><?= Icon::get('tool', '', 14) ?></span>
-                        <span id="triggerRebuildText"><?= I18n::t('rebuild_repair_btn') ?></span>
-                    </button>
-                </div>
-
-                <span id="updateCheckedDateDisplay" class="text-secondary small">
-                    <?= I18n::t('update_checking_hint', ['date' => !empty($updateInfo['cached_at']) ? date('Y-m-d H:i', (int)$updateInfo['cached_at']) : date('Y-m-d H:i')]) ?>
-                </span>
-            </div>
         </div>
     </div>
 </div>
