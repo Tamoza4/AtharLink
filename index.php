@@ -445,7 +445,6 @@ if ($action === 'save_settings' && $_SERVER['REQUEST_METHOD'] === 'POST') {
     if (!Helpers::verifyCsrf($_POST['csrf_token'] ?? '')) {
         $_SESSION['flash_error'] = I18n::t('csrf_invalid');
     } else {
-        $title = trim((string)($_POST['site_title'] ?? 'AtharLink'));
         $hours = max(1.0, (float)($_POST['uniqueness_hours'] ?? 24));
         $seconds = (int)round($hours * 3600);
 
@@ -481,7 +480,6 @@ if ($action === 'save_settings' && $_SERVER['REQUEST_METHOD'] === 'POST') {
             $appTimezone = 'UTC';
         }
 
-        Database::setSetting('site_title', $title);
         Database::setSetting('uniqueness_window', (string)$seconds);
         Database::setSetting('guest_redirect_enabled', $redirectEnabled);
         Database::setSetting('guest_redirect_url', $guestRedirect);
@@ -490,8 +488,7 @@ if ($action === 'save_settings' && $_SERVER['REQUEST_METHOD'] === 'POST') {
         Helpers::applyTimezone(true);
         Helpers::getTimezoneModifier(true);
 
-        AuditLogger::log('save_settings', 'Updated system settings: ' . $title, [
-            'site_title'             => $title,
+        AuditLogger::log('save_settings', 'Updated system settings', [
             'uniqueness_hours'       => $hours,
             'guest_redirect_enabled' => $redirectEnabled,
             'guest_redirect_url'     => $guestRedirect,

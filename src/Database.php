@@ -202,7 +202,6 @@ class Database
         ");
 
         // Set default settings if not already present
-        self::ensureDefaultSetting('site_title', 'AtharLink');
         self::ensureDefaultSetting('uniqueness_window', (string)DEFAULT_UNIQUENESS_WINDOW);
         self::ensureDefaultSetting('theme', 'dark');
         self::ensureDefaultSetting('language', 'ar');

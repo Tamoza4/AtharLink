@@ -13,7 +13,6 @@ use AtharLink\Icon;
 use AtharLink\Updater;
 
 $user = Auth::user();
-$siteTitle = Database::getSetting('site_title', 'AtharLink');
 $uniquenessWindow = (int)Database::getSetting('uniqueness_window', (string)DEFAULT_UNIQUENESS_WINDOW);
 $hoursWindow = round($uniquenessWindow / 3600, 1);
 $guestRedirectUrl = Database::getSetting('guest_redirect_url', '');
@@ -109,11 +108,6 @@ $updateInfo = Updater::check();
             
             <form method="POST" action="<?= Helpers::baseUrl('index.php?action=save_settings') ?>">
                 <?= Helpers::csrfInput() ?>
-
-                <div class="mb-3">
-                    <label class="form-label small fw-semibold"><?= I18n::t('site_title_label') ?></label>
-                    <input type="text" name="site_title" class="form-control tamoza-input" value="<?= Helpers::e($siteTitle) ?>" required>
-                </div>
 
                 <div class="mb-4">
                     <label class="form-label small fw-semibold"><?= I18n::t('uniqueness_window_label') ?></label>
