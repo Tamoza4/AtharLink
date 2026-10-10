@@ -119,15 +119,23 @@
         // Logo & Title
         ctx.fillStyle = '#FFFFFF';
         ctx.font = 'bold 24px ' + font;
-        ctx.fillText('AtharLink', leftX, 60);
+        const logoText = 'AtharLink';
+        const logoW = ctx.measureText(logoText).width;
+        ctx.fillText(logoText, leftX, 60);
 
         // Brand Badge
-        const badgeX = rtl ? baseW - 220 : 210;
-        drawRoundRect(ctx, badgeX, 40, 145, 26, 13, 'rgba(99, 102, 241, 0.25)', 'rgba(99, 102, 241, 0.4)', 1);
-        ctx.fillStyle = '#A5B4FC';
         ctx.font = 'bold 11px ' + font;
+        const badgeText = t('reportBadgeAnalytics', 'ANALYTICS CARD');
+        const badgeTextW = ctx.measureText(badgeText).width;
+        const badgeW = Math.max(90, Math.ceil(badgeTextW + 24));
+        const badgeH = 26;
+        const badgeY = 40;
+        const badgeX = rtl ? (leftX - logoW - 16 - badgeW) : (leftX + logoW + 16);
+
+        drawRoundRect(ctx, badgeX, badgeY, badgeW, badgeH, 13, 'rgba(99, 102, 241, 0.25)', 'rgba(99, 102, 241, 0.4)', 1);
+        ctx.fillStyle = '#A5B4FC';
         ctx.textAlign = 'center';
-        ctx.fillText(t('reportBadgeAnalytics', 'ANALYTICS CARD'), badgeX + 72, 57);
+        ctx.fillText(badgeText, badgeX + (badgeW / 2), 57);
 
         // Date & Status (Right side in LTR, Left in RTL)
         ctx.textAlign = rtl ? 'left' : 'right';
@@ -367,16 +375,23 @@
         // Logo
         ctx.fillStyle = '#FFFFFF';
         ctx.font = 'bold 24px ' + font;
-        ctx.fillText('AtharLink', leftX, 58);
+        const logoText = 'AtharLink';
+        const logoW = ctx.measureText(logoText).width;
+        ctx.fillText(logoText, leftX, 58);
 
         // System Overview Badge
-        const badgeW = rtl ? 115 : 155;
-        const badgeX = rtl ? baseW - 225 : 190;
-        drawRoundRect(ctx, badgeX, 38, badgeW, 26, 13, 'rgba(99, 102, 241, 0.25)', 'rgba(99, 102, 241, 0.4)', 1);
-        ctx.fillStyle = '#A5B4FC';
         ctx.font = 'bold 11px ' + font;
+        const badgeText = t('reportBadgeOverview', 'SYSTEM OVERVIEW');
+        const badgeTextW = ctx.measureText(badgeText).width;
+        const badgeW = Math.max(90, Math.ceil(badgeTextW + 24));
+        const badgeH = 26;
+        const badgeY = 38;
+        const badgeX = rtl ? (leftX - logoW - 16 - badgeW) : (leftX + logoW + 16);
+
+        drawRoundRect(ctx, badgeX, badgeY, badgeW, badgeH, 13, 'rgba(99, 102, 241, 0.25)', 'rgba(99, 102, 241, 0.4)', 1);
+        ctx.fillStyle = '#A5B4FC';
         ctx.textAlign = 'center';
-        ctx.fillText(t('reportBadgeOverview', 'SYSTEM OVERVIEW'), badgeX + (badgeW / 2), 55);
+        ctx.fillText(badgeText, badgeX + (badgeW / 2), 55);
 
         // Date & Period
         ctx.textAlign = rtl ? 'left' : 'right';
@@ -490,7 +505,7 @@
                 ctx.fillStyle = '#818CF8';
                 ctx.font = 'bold 13.5px ' + font;
                 const clicksX = rtl ? topLinksCardX + 20 : topLinksCardX + leftCardW - 20;
-                ctx.fillText(formatNumber(clicks) + ' clicks (' + sharePct + '%)', clicksX, itemY - 2);
+                ctx.fillText(formatNumber(clicks) + (rtl ? ' نقرة ' : ' clicks ') + '(' + sharePct + '%)', clicksX, itemY - 2);
 
                 // Traffic share bar
                 const barW = 140;
@@ -571,7 +586,7 @@
                 ctx.fillStyle = '#38BDF8';
                 ctx.font = 'bold 12.5px ' + font;
                 const valX = rtl ? col1X + 18 : col1X + col3W - 18;
-                ctx.fillText(formatNumber(c.count) + ' clicks', valX, cY);
+                ctx.fillText(formatNumber(c.count) + (rtl ? ' نقرة' : ' clicks'), valX, cY);
             });
         }
 
@@ -637,7 +652,7 @@
                 ctx.fillStyle = '#22D3EE';
                 ctx.font = 'bold 12.5px ' + font;
                 const valX = rtl ? col3X + 18 : col3X + col3W - 18;
-                ctx.fillText(formatNumber(b.count) + ' clicks', valX, bY);
+                ctx.fillText(formatNumber(b.count) + (rtl ? ' نقرة' : ' clicks'), valX, bY);
             });
         }
 
