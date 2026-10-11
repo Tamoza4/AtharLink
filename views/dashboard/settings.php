@@ -440,8 +440,9 @@ $updateInfo = Updater::check();
                         <div class="text-danger mb-2"><?= Icon::get('alert-triangle', '', 28) ?></div>
                         <h6 class="text-white fw-bold mb-1" id="diagErrorMessage">Error occurred</h6>
                         <button type="button" id="diagRetryBtn" class="btn btn-tamoza-secondary btn-sm mt-3 px-3">
-                            <?= Icon::get('refresh', '', 14) ?> <span class="ms-1">إعادة المحاولة</span>
+                            <?= Icon::get('refresh', '', 14) ?> <span class="ms-1"><?= I18n::t('retry_btn') ?></span>
                         </button>
+
                     </div>
 
                     <!-- 3. Diagnostic Cards Content -->
@@ -726,8 +727,11 @@ document.addEventListener('DOMContentLoaded', function () {
         diagModifiedNone: <?= json_encode(I18n::t('diag_modified_none')) ?>,
         diagModifiedCount: <?= json_encode(I18n::t('diag_modified_count')) ?>,
         diagViewFiles: <?= json_encode(I18n::t('diag_view_files')) ?>,
-        diagHideFiles: <?= json_encode(I18n::t('diag_hide_files')) ?>
+        diagHideFiles: <?= json_encode(I18n::t('diag_hide_files')) ?>,
+        diagUntrackedSafe: <?= json_encode(I18n::t('diag_untracked_safe')) ?>,
+        diagDbStatusOk: <?= json_encode(I18n::t('diag_db_status_ok')) ?>
     };
+
 
 
     const updateModalEl = document.getElementById('systemUpdateModal');
@@ -1180,7 +1184,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
             if (untrackedFiles.length > 0) {
                 if (untrackedCard) untrackedCard.classList.remove('d-none');
-                if (badgeUntracked) badgeUntracked.textContent = 'محفوظة بأمان (' + untrackedFiles.length + ')';
+                if (badgeUntracked) badgeUntracked.textContent = updateI18n.diagUntrackedSafe + ' (' + untrackedFiles.length + ')';
                 renderFilesList(listUntracked, untrackedFiles);
                 if (toggleUntracked) toggleUntracked.classList.remove('d-none');
             } else {
@@ -1199,12 +1203,13 @@ document.addEventListener('DOMContentLoaded', function () {
             if (badgeDb && data.database) {
                 if (data.database.healthy) {
                     badgeDb.className = 'badge rounded-pill bg-success-subtle text-success small';
-                    badgeDb.textContent = 'سليمة 100%';
+                    badgeDb.textContent = updateI18n.diagDbStatusOk;
                 } else {
                     badgeDb.className = 'badge rounded-pill bg-warning-subtle text-warning small';
                     badgeDb.textContent = data.database.integrity;
                 }
             }
+
 
             // Update tasks count
             updateDiagTaskCounter();

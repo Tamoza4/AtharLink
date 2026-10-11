@@ -355,6 +355,7 @@ class I18n
                 'diag_view_files'               => 'عرض الملفات',
                 'diag_hide_files'               => 'إخفاء الملفات',
                 'diag_status_ready'             => 'جاهز للترميم',
+                'retry_btn'                     => 'إعادة المحاولة',
 
 
                 // Embed Counter Modal
@@ -973,6 +974,7 @@ class I18n
                 'diag_view_files'               => 'View files',
                 'diag_hide_files'               => 'Hide files',
                 'diag_status_ready'             => 'Ready to Repair',
+                'retry_btn'                     => 'Retry',
 
 
                 // Embed Counter Modal
