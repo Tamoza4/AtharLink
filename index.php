@@ -646,6 +646,15 @@ if ($action === 'apply_update' && $_SERVER['REQUEST_METHOD'] === 'POST') {
     exit;
 }
 
+// Pre-Repair Diagnostic Scan for System Files and Integrity
+if ($action === 'diagnose_system' && $_SERVER['REQUEST_METHOD'] === 'POST') {
+    if (!Helpers::verifyCsrf($_POST['csrf_token'] ?? '')) {
+        Helpers::json(['success' => false, 'message' => I18n::t('csrf_invalid')], 403);
+    }
+    $res = Updater::diagnoseSystem();
+    Helpers::json($res);
+}
+
 // Rebuild & Repair System Files and Integrity
 if ($action === 'rebuild_repair' && $_SERVER['REQUEST_METHOD'] === 'POST') {
     if (!Helpers::verifyCsrf($_POST['csrf_token'] ?? '')) {
@@ -654,7 +663,13 @@ if ($action === 'rebuild_repair' && $_SERVER['REQUEST_METHOD'] === 'POST') {
         }
         $_SESSION['flash_error'] = I18n::t('csrf_invalid');
     } else {
-        $res = Updater::rebuildSystem();
+        $options = [
+            'restore_missing'  => !empty($_POST['restore_missing']),
+            'restore_modified' => !empty($_POST['restore_modified']),
+            'backup_mods'      => !isset($_POST['backup_mods']) || !empty($_POST['backup_mods']),
+            'optimize_db'      => !empty($_POST['optimize_db'])
+        ];
+        $res = Updater::rebuildSystem($options);
         if (Helpers::isAjax()) {
             Helpers::json($res);
         }
@@ -668,6 +683,7 @@ if ($action === 'rebuild_repair' && $_SERVER['REQUEST_METHOD'] === 'POST') {
     header('Location: ' . Helpers::baseUrl('index.php?page=settings'));
     exit;
 }
+
 
 // Prune Audit Logs (e.g. older than 30, 60, or 90 days)
 if ($action === 'prune_logs' && $_SERVER['REQUEST_METHOD'] === 'POST') {

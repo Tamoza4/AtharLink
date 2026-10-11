@@ -333,24 +333,241 @@ class Updater
     }
 
     /**
-     * Core System Rebuilder & Integrity Repair Engine:
-     * 1. Restores missing core files via Git (if available) or GitHub Raw fallback.
-     * 2. Re-verifies storage directory permissions, .htaccess guard, and installed.lock.
-     * 3. Runs schema migrations and rebuilds missing tables/columns.
-     * 4. Checks SQLite integrity & WAL checkpoint.
-     * 5. Purges caches & resets OPcache.
+     * Official Core Manifest Files
      */
-    public static function rebuildSystem(): array
+    public const CORE_MANIFEST = [
+        '.htaccess',
+        '.well-known/security.txt',
+        'api/v1/index.php',
+        'assets/css/app.css',
+        'assets/css/bootstrap.min.css',
+        'assets/js/app.js',
+        'assets/js/bootstrap.bundle.min.js',
+        'assets/js/chart.min.js',
+        'assets/js/qrcode.min.js',
+        'assets/js/report-card.js',
+        'badge.php',
+        'bin/.htaccess',
+        'bin/reset_password.php',
+        'bin/update.php',
+        'config/checksums.json',
+        'config/config.php',
+        'embed.js',
+        'index.php',
+        'LICENSE',
+        'r.php',
+        'README.md',
+        'robots.txt',
+        'security.txt',
+        'src/AuditLogger.php',
+        'src/Auth.php',
+        'src/Database.php',
+        'src/Helpers.php',
+        'src/I18n.php',
+        'src/Icon.php',
+        'src/LinkManager.php',
+        'src/Tracker.php',
+        'src/Updater.php',
+        'version.json',
+        'views/auth/login.php',
+        'views/dashboard/index.php',
+        'views/dashboard/links.php',
+        'views/dashboard/logs.php',
+        'views/dashboard/settings.php',
+        'views/dashboard/stats.php',
+        'views/install/index.php',
+        'views/layout/footer.php',
+        'views/layout/header.php'
+    ];
+
+    /**
+     * Load official SHA-256 file checksums
+     */
+    public static function getChecksumsManifest(): array
+    {
+        $checksumFile = APP_ROOT . DIRECTORY_SEPARATOR . 'config' . DIRECTORY_SEPARATOR . 'checksums.json';
+        if (file_exists($checksumFile)) {
+            $raw = @file_get_contents($checksumFile);
+            if ($raw !== false && $raw !== '') {
+                $raw = preg_replace('/^\xEF\xBB\xBF/', '', (string)$raw);
+                $decoded = json_decode($raw, true);
+                if (is_array($decoded)) {
+                    return $decoded;
+                }
+            }
+        }
+        return [];
+    }
+
+
+    /**
+     * Pre-Repair Diagnostic Engine:
+     * Scans missing, modified, and untracked (custom) files, and tests database health.
+     * Operates in 100% read-only mode without modifying any files or databases.
+     */
+    public static function diagnoseSystem(): array
+    {
+        $gitDir = APP_ROOT . DIRECTORY_SEPARATOR . '.git';
+        $isGit = is_dir($gitDir) && function_exists('exec');
+
+        $missingFiles = [];
+        $modifiedFiles = [];
+        $untrackedFiles = [];
+
+        if ($isGit) {
+            $statusOut = [];
+            $statusCode = 0;
+            @exec('cd ' . escapeshellarg(APP_ROOT) . ' && git status --porcelain 2>&1', $statusOut, $statusCode);
+            if ($statusCode === 0) {
+                foreach ($statusOut as $line) {
+                    $line = trim($line);
+                    if (strlen($line) < 4) {
+                        continue;
+                    }
+                    $code = substr($line, 0, 2);
+                    $file = trim(substr($line, 2));
+                    $file = str_replace('\\', '/', $file);
+
+                    // Skip runtime storage, git internal files, and environment files
+                    if (str_starts_with($file, 'storage/') || str_starts_with($file, '.git') || $file === '.gitignore' || $file === '.gitattributes') {
+                        continue;
+                    }
+
+                    if (str_contains($code, 'D')) {
+                        $missingFiles[] = $file;
+                    } elseif (str_contains($code, 'M')) {
+                        $modifiedFiles[] = $file;
+                    } elseif ($code === '??') {
+                        $untrackedFiles[] = $file;
+                    }
+                }
+            }
+        } else {
+            // Standalone mode: Scan core manifest and local disk against checksums
+            $checksums = self::getChecksumsManifest();
+            $coreSet = array_flip(self::CORE_MANIFEST);
+
+            // 1. Check core manifest files
+            foreach (self::CORE_MANIFEST as $relFile) {
+                $absPath = APP_ROOT . DIRECTORY_SEPARATOR . str_replace('/', DIRECTORY_SEPARATOR, $relFile);
+                if (!file_exists($absPath)) {
+                    $missingFiles[] = $relFile;
+                } elseif (!empty($checksums[$relFile])) {
+                    $currentHash = hash_file('sha256', $absPath);
+                    if ($currentHash !== $checksums[$relFile]) {
+                        $modifiedFiles[] = $relFile;
+                    }
+                }
+            }
+
+            // 2. Scan core directories for extra / untracked files
+            $dirsToScan = ['src', 'views', 'assets', 'api', 'bin', 'config'];
+            foreach ($dirsToScan as $dir) {
+                $absDir = APP_ROOT . DIRECTORY_SEPARATOR . $dir;
+                if (!is_dir($absDir)) {
+                    continue;
+                }
+                $iterator = new \RecursiveIteratorIterator(new \RecursiveDirectoryIterator($absDir, \FilesystemIterator::SKIP_DOTS));
+                foreach ($iterator as $item) {
+                    if ($item->isFile()) {
+                        $relPath = str_replace('\\', '/', substr($item->getPathname(), strlen(APP_ROOT) + 1));
+                        if (!isset($coreSet[$relPath]) && !str_starts_with($relPath, 'storage/')) {
+                            $untrackedFiles[] = $relPath;
+                        }
+                    }
+                }
+            }
+
+            // 3. Scan root items for untracked / extra files
+            $rootItems = @scandir(APP_ROOT) ?: [];
+            $ignoredRoot = ['.', '..', 'storage', '.git', '.gemini', '.agents', '.vscode', '.idea', 'Instructions.txt', 'update.sh', 'GitHub'];
+            foreach ($rootItems as $item) {
+                if (in_array($item, $ignoredRoot, true)) {
+                    continue;
+                }
+                if (is_file(APP_ROOT . DIRECTORY_SEPARATOR . $item)) {
+                    if (!isset($coreSet[$item])) {
+                        $untrackedFiles[] = $item;
+                    }
+                } elseif (is_dir(APP_ROOT . DIRECTORY_SEPARATOR . $item)) {
+                    if (!in_array($item, ['src', 'views', 'assets', 'api', 'bin', 'config', '.well-known'], true)) {
+                        $untrackedFiles[] = $item . '/';
+                    }
+                }
+            }
+        }
+
+        // Database status & sizes
+        $dbStatus = [
+            'integrity' => 'ok',
+            'size'      => '0 KB',
+            'wal_size'  => '0 KB',
+            'healthy'   => true
+        ];
+        try {
+            $pdo = Database::getConnection();
+            $integ = $pdo->query('PRAGMA integrity_check;')->fetchColumn();
+            $dbStatus['integrity'] = ($integ === 'ok') ? 'ok' : (string)$integ;
+            $dbStatus['healthy'] = ($integ === 'ok');
+
+            if (file_exists(DB_PATH)) {
+                $bytes = (int)filesize(DB_PATH);
+                $dbStatus['size'] = Helpers::formatBytes($bytes);
+            }
+            $walPath = DB_PATH . '-wal';
+            if (file_exists($walPath)) {
+                $walBytes = (int)filesize($walPath);
+                $dbStatus['wal_size'] = Helpers::formatBytes($walBytes);
+            }
+        } catch (Throwable $e) {
+            $dbStatus['integrity'] = 'Notice: ' . $e->getMessage();
+            $dbStatus['healthy'] = false;
+        }
+
+        $storageHtaccess = STORAGE_DIR . DIRECTORY_SEPARATOR . '.htaccess';
+        $storageGuard = file_exists($storageHtaccess);
+        $lockFile = file_exists(LOCK_FILE);
+
+        return [
+            'success'         => true,
+            'is_git'          => $isGit,
+            'missing_files'   => array_values(array_unique($missingFiles)),
+            'modified_files'  => array_values(array_unique($modifiedFiles)),
+            'untracked_files' => array_values(array_unique($untrackedFiles)),
+            'database'        => $dbStatus,
+            'storage_guard'   => $storageGuard,
+            'lock_file'       => $lockFile,
+            'clean'           => (empty($missingFiles) && empty($modifiedFiles))
+        ];
+    }
+
+    /**
+     * Smart System Rebuilder & Selective Integrity Repair Engine:
+     * 1. Creates a safe pre-repair SQLite backup snapshot in storage/
+     * 2. Backs up user-modified files to storage/backups_code/ before restoration (if requested)
+     * 3. Selectively restores missing files and/or modified files
+     * 4. Strictly protects untracked/extra files (never deletes custom files)
+     * 5. Re-verifies storage protection, .htaccess, and lock file
+     * 6. Optimizes SQLite (VACUUM, WAL checkpoint, index reindex, schema migrations)
+     * 7. Clears OPcache and runtime update caches
+     */
+    public static function rebuildSystem(array $options = []): array
     {
         $log = [];
-        $log[] = 'System rebuild and integrity repair started: ' . date('Y-m-d H:i:s T');
+        $log[] = 'System rebuild and selective repair started: ' . date('Y-m-d H:i:s T');
         $restoredFiles = 0;
 
-        // 1. Storage folder and protection integrity
+        // Default flags (safe default: restore missing = true, restore modified = false, backup mods = true, optimize db = true)
+        $restoreMissing  = !isset($options['restore_missing'])  ? true : !empty($options['restore_missing']);
+        $restoreModified = !isset($options['restore_modified']) ? false : !empty($options['restore_modified']);
+        $backupMods      = !isset($options['backup_mods'])      ? true : !empty($options['backup_mods']);
+        $optimizeDb      = !isset($options['optimize_db'])      ? true : !empty($options['optimize_db']);
+
+        // 1. Storage directory & access guard integrity
         $storageDir = STORAGE_DIR;
         if (!is_dir($storageDir)) {
             @mkdir($storageDir, 0755, true);
-            $log[] = 'Recreated missing storage directory.';
+            $log[] = 'Created missing storage directory.';
         }
 
         $storageHtaccess = $storageDir . DIRECTORY_SEPARATOR . '.htaccess';
@@ -360,120 +577,170 @@ class Updater
             $log[] = 'Recreated missing security guard: storage/.htaccess.';
         }
 
-        // 2. Restore missing or damaged core files
-        $gitDir = APP_ROOT . DIRECTORY_SEPARATOR . '.git';
-        if (is_dir($gitDir) && function_exists('exec')) {
-            $output = [];
-            $code = 0;
-            // Restore any deleted tracked files safely
-            @exec('cd ' . escapeshellarg(APP_ROOT) . ' && git checkout -- . 2>&1', $output, $code);
-            if ($code === 0) {
-                $log[] = 'Git integrity check: Verified and restored tracked core files.';
-            } else {
-                $log[] = 'Git notice: ' . implode(' ', $output);
-            }
-        } else {
-            // Standalone / Non-Git mode: Check essential manifest files from GitHub Raw
-            $manifest = [
-                'index.php',
-                'r.php',
-                'embed.js',
-                'version.json',
-                'config/config.php',
-                'src/Auth.php',
-                'src/Database.php',
-                'src/Helpers.php',
-                'src/I18n.php',
-                'src/Icon.php',
-                'src/LinkManager.php',
-                'src/Tracker.php',
-                'src/Updater.php',
-                'views/auth/login.php',
-                'views/dashboard/index.php',
-                'views/dashboard/links.php',
-                'views/dashboard/settings.php',
-                'views/dashboard/stats.php',
-                'views/install/index.php',
-                'views/layout/header.php',
-                'views/layout/footer.php',
-                'assets/css/app.css',
-                'assets/js/app.js'
-            ];
-
-            $repo = Database::getSetting('github_repo', self::DEFAULT_REPO);
-            $rawBase = "https://raw.githubusercontent.com/{$repo}/main/";
-
-            foreach ($manifest as $fileRel) {
-                $targetPath = APP_ROOT . DIRECTORY_SEPARATOR . str_replace('/', DIRECTORY_SEPARATOR, $fileRel);
-                if (!file_exists($targetPath)) {
-                    $downloadUrl = $rawBase . $fileRel;
-                    $content = null;
-
-                    if (function_exists('curl_init')) {
-                        $ch = curl_init($downloadUrl);
-                        curl_setopt_array($ch, [
-                            CURLOPT_RETURNTRANSFER => true,
-                            CURLOPT_TIMEOUT        => 6,
-                            CURLOPT_CONNECTTIMEOUT => 3,
-                            CURLOPT_USERAGENT      => 'AtharLink-Rebuilder',
-                            CURLOPT_SSL_VERIFYPEER => true
-                        ]);
-                        $res = curl_exec($ch);
-                        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-                        curl_close($ch);
-                        if ($httpCode === 200 && is_string($res) && strlen($res) > 0) {
-                            $content = $res;
-                        }
-                    } elseif (ini_get('allow_url_fopen')) {
-                        $content = @file_get_contents($downloadUrl);
-                    }
-
-                    if ($content !== null) {
-                        $parentDir = dirname($targetPath);
-                        if (!is_dir($parentDir)) {
-                            @mkdir($parentDir, 0755, true);
-                        }
-                        @file_put_contents($targetPath, $content);
-                        $restoredFiles++;
-                        $log[] = "Restored missing file from repository: {$fileRel}";
-                    } else {
-                        $log[] = "Warning: Could not fetch missing file: {$fileRel}";
-                    }
-                }
-            }
-            if ($restoredFiles === 0) {
-                $log[] = 'Core file scan: All required application files are intact.';
-            }
-        }
-
-        // 3. Database schema verification & migrations
-        try {
-            Database::initSchema();
-            $log[] = 'Database schema and column migrations verified.';
-        } catch (Throwable $e) {
-            $log[] = 'Schema verification notice: ' . $e->getMessage();
-        }
-
-        // 4. SQLite integrity check & WAL checkpoint
+        // 2. Pre-Repair SQLite Database Snapshot (First line of defense)
         try {
             $pdo = Database::getConnection();
             $pdo->exec('PRAGMA wal_checkpoint(TRUNCATE);');
-            $integrity = $pdo->query('PRAGMA integrity_check;')->fetchColumn();
-            $log[] = 'Database health: SQLite integrity check passed (' . ($integrity === 'ok' ? 'OK' : (string)$integrity) . ').';
+            
+            $backupName = 'backup_pre_repair_' . date('Ymd_His') . '.sqlite';
+            $backupPath = STORAGE_DIR . DIRECTORY_SEPARATOR . $backupName;
+
+            if (file_exists(DB_PATH) && copy(DB_PATH, $backupPath)) {
+                $log[] = "Pre-repair database snapshot saved: {$backupName}";
+            }
         } catch (Throwable $e) {
-            $log[] = 'Database check warning: ' . $e->getMessage();
+            $log[] = 'Database snapshot notice: ' . $e->getMessage();
         }
 
-        // 5. Restore installed.lock if accidentally deleted
+        // 3. Diagnose current state to identify target files
+        $diagnosis = self::diagnoseSystem();
+        $targetMissing = $diagnosis['missing_files'] ?? [];
+        $targetModified = $diagnosis['modified_files'] ?? [];
+        $isGit = !empty($diagnosis['is_git']);
+
+        // 4. Backup modified code files before overwriting (if restoreModified is requested)
+        if ($restoreModified && !empty($targetModified) && $backupMods) {
+            $backupCodeDir = STORAGE_DIR . DIRECTORY_SEPARATOR . 'backups_code' . DIRECTORY_SEPARATOR . 'backup_mods_' . date('Ymd_His');
+            if (!is_dir($backupCodeDir)) {
+                @mkdir($backupCodeDir, 0755, true);
+            }
+            foreach ($targetModified as $modFile) {
+                $srcFile = APP_ROOT . DIRECTORY_SEPARATOR . str_replace('/', DIRECTORY_SEPARATOR, $modFile);
+                $destFile = $backupCodeDir . DIRECTORY_SEPARATOR . str_replace('/', DIRECTORY_SEPARATOR, $modFile);
+                if (file_exists($srcFile)) {
+                    $parentDest = dirname($destFile);
+                    if (!is_dir($parentDest)) {
+                        @mkdir($parentDest, 0755, true);
+                    }
+                    @copy($srcFile, $destFile);
+                }
+            }
+            $log[] = 'Saved backup of modified code files to: storage/backups_code/' . basename($backupCodeDir);
+        }
+
+        // 5. Execute file restorations
+        if ($isGit) {
+            // Git environment
+            if ($restoreMissing && $restoreModified) {
+                $output = [];
+                $code = 0;
+                @exec('cd ' . escapeshellarg(APP_ROOT) . ' && git checkout -- . 2>&1', $output, $code);
+                if ($code === 0) {
+                    $log[] = 'Git: Restored all missing and modified files to clean repository state.';
+                    $restoredFiles += count($targetMissing) + count($targetModified);
+                } else {
+                    $log[] = 'Git notice: ' . implode(' ', $output);
+                }
+            } elseif ($restoreMissing && !empty($targetMissing)) {
+                foreach ($targetMissing as $mFile) {
+                    $out = [];
+                    $cd = 0;
+                    @exec('cd ' . escapeshellarg(APP_ROOT) . ' && git checkout -- ' . escapeshellarg($mFile) . ' 2>&1', $out, $cd);
+                    if ($cd === 0) {
+                        $restoredFiles++;
+                        $log[] = "Git: Restored missing file: {$mFile}";
+                    }
+                }
+            } elseif ($restoreModified && !empty($targetModified)) {
+                foreach ($targetModified as $modFile) {
+                    $out = [];
+                    $cd = 0;
+                    @exec('cd ' . escapeshellarg(APP_ROOT) . ' && git checkout -- ' . escapeshellarg($modFile) . ' 2>&1', $out, $cd);
+                    if ($cd === 0) {
+                        $restoredFiles++;
+                        $log[] = "Git: Reverted modified file to official: {$modFile}";
+                    }
+                }
+            }
+        } else {
+            // Standalone / Non-Git environment: Download from official GitHub Raw
+            $repo = Database::getSetting('github_repo', self::DEFAULT_REPO);
+            $rawBase = "https://raw.githubusercontent.com/{$repo}/main/";
+
+            $filesToDownload = [];
+            if ($restoreMissing) {
+                foreach ($targetMissing as $f) {
+                    $filesToDownload[] = $f;
+                }
+            }
+            if ($restoreModified) {
+                foreach ($targetModified as $f) {
+                    $filesToDownload[] = $f;
+                }
+            }
+
+            foreach ($filesToDownload as $fileRel) {
+                $targetPath = APP_ROOT . DIRECTORY_SEPARATOR . str_replace('/', DIRECTORY_SEPARATOR, $fileRel);
+                $downloadUrl = $rawBase . $fileRel;
+                $content = null;
+
+                if (function_exists('curl_init')) {
+                    $ch = curl_init($downloadUrl);
+                    curl_setopt_array($ch, [
+                        CURLOPT_RETURNTRANSFER => true,
+                        CURLOPT_TIMEOUT        => 6,
+                        CURLOPT_CONNECTTIMEOUT => 3,
+                        CURLOPT_USERAGENT      => 'AtharLink-Rebuilder',
+                        CURLOPT_SSL_VERIFYPEER => true
+                    ]);
+                    $res = curl_exec($ch);
+                    $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+                    curl_close($ch);
+                    if ($httpCode === 200 && is_string($res) && strlen($res) > 0) {
+                        $content = $res;
+                    }
+                } elseif (ini_get('allow_url_fopen')) {
+                    $content = @file_get_contents($downloadUrl);
+                }
+
+                if ($content !== null) {
+                    $parentDir = dirname($targetPath);
+                    if (!is_dir($parentDir)) {
+                        @mkdir($parentDir, 0755, true);
+                    }
+                    @file_put_contents($targetPath, $content);
+                    $restoredFiles++;
+                    $log[] = "Restored file from repository: {$fileRel}";
+                } else {
+                    $log[] = "Notice: Could not fetch file: {$fileRel}";
+                }
+            }
+        }
+
+        if ($restoredFiles === 0 && ($restoreMissing || $restoreModified)) {
+            $log[] = 'File check: All checked system files are intact.';
+        }
+
+        // 6. Restore installed.lock if accidentally deleted
         if (!file_exists(LOCK_FILE)) {
             @file_put_contents(LOCK_FILE, json_encode([
                 'installed_at' => date('c'),
-                'version'      => defined('APP_VERSION') ? APP_VERSION : '1.0.1'
+                'version'      => defined('APP_VERSION') ? APP_VERSION : '1.0.14'
             ]));
             $log[] = 'Recreated missing installation lock file.';
         }
 
-        // 6. Reset OPcache & flush update check cache
+        // 7. Database optimization & schema check (if requested)
+        if ($optimizeDb) {
+            try {
+                Database::initSchema();
+                $log[] = 'Database schema and column migrations verified.';
+            } catch (Throwable $e) {
+                $log[] = 'Schema verification notice: ' . $e->getMessage();
+            }
+
+            try {
+                $pdo = Database::getConnection();
+                $pdo->exec('PRAGMA optimize;');
+                $pdo->exec('PRAGMA wal_checkpoint(TRUNCATE);');
+                $integrity = $pdo->query('PRAGMA integrity_check;')->fetchColumn();
+                $log[] = 'Database health: SQLite integrity check passed (' . ($integrity === 'ok' ? 'OK' : (string)$integrity) . ').';
+            } catch (Throwable $e) {
+                $log[] = 'Database check warning: ' . $e->getMessage();
+            }
+        }
+
+        // 8. Reset OPcache & flush update check cache
         if (function_exists('opcache_reset')) {
             @opcache_reset();
             $log[] = 'PHP OPcache cleared and refreshed.';
@@ -488,3 +755,4 @@ class Updater
         ];
     }
 }
+

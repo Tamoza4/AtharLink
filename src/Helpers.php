@@ -918,4 +918,18 @@ class Helpers
             ? I18n::t('time_year_ago') 
             : I18n::t('time_years_ago', ['n' => $years]);
     }
+
+    /**
+     * Format byte count into human-readable representation (e.g. 1.2 MB)
+     */
+    public static function formatBytes(int $bytes, int $precision = 1): string
+    {
+        if ($bytes <= 0) {
+            return '0 B';
+        }
+        $units = ['B', 'KB', 'MB', 'GB', 'TB'];
+        $power = min((int)floor(log($bytes, 1024)), count($units) - 1);
+        return round($bytes / pow(1024, $power), $precision) . ' ' . $units[$power];
+    }
 }
+

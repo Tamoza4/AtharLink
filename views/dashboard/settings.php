@@ -413,49 +413,147 @@ $updateInfo = Updater::check();
 
 <!-- Modal: Rebuild & Repair Confirmation & Progress Modal -->
 <div class="modal fade" id="rebuildRepairModal" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
         <div class="modal-content shadow border-0" style="background: #161A23 !important; border: 1px solid var(--tamoza-border); border-radius: var(--tamoza-radius-lg);">
             
-            <!-- Step 1: Confirmation View -->
+            <!-- Step 1: Diagnostic & Selection View -->
             <div id="rebuildConfirmView">
-                <div class="modal-header border-0 pb-0">
-                    <h5 class="modal-title fw-bold d-flex align-items-center gap-2 text-white">
+                <div class="modal-header border-0 pb-0 d-flex align-items-center justify-content-between">
+                    <div class="d-flex align-items-center gap-2">
                         <?= Icon::get('tool', 'text-indigo') ?>
-                        <span><?= I18n::t('rebuild_repair_confirm_title') ?></span>
-                    </h5>
+                        <h5 class="modal-title fw-bold text-white mb-0"><?= I18n::t('diag_title') ?></h5>
+                        <span id="diagHeaderBadge" class="badge rounded-pill bg-success-subtle text-success small ms-2 d-none"><?= I18n::t('diag_status_ready') ?></span>
+                    </div>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
+                
                 <div class="modal-body py-4">
-                    <p class="text-white fw-semibold mb-3"><?= I18n::t('rebuild_repair_confirm_text') ?></p>
-                    <div class="p-3 rounded-4 mb-2 small" style="background: rgba(99, 102, 241, 0.05); border: 1px solid var(--tamoza-border);">
-                        <ul class="list-unstyled mb-0 d-flex flex-column gap-2 text-secondary">
-                            <li class="d-flex align-items-center gap-2">
-                                <span class="text-success"><?= Icon::get('check-circle', '', 14) ?></span>
-                                <span><?= I18n::t('rebuild_point_files') ?></span>
-                            </li>
-                            <li class="d-flex align-items-center gap-2">
-                                <span class="text-success"><?= Icon::get('check-circle', '', 14) ?></span>
-                                <span><?= I18n::t('rebuild_point_storage') ?></span>
-                            </li>
-                            <li class="d-flex align-items-center gap-2">
-                                <span class="text-success"><?= Icon::get('check-circle', '', 14) ?></span>
-                                <span><?= I18n::t('rebuild_point_db') ?></span>
-                            </li>
-                            <li class="d-flex align-items-center gap-2">
-                                <span class="text-success"><?= Icon::get('check-circle', '', 14) ?></span>
-                                <span><?= I18n::t('rebuild_point_cache') ?></span>
-                            </li>
-                        </ul>
+                    <!-- 1. Loading State -->
+                    <div id="diagLoadingState" class="text-center py-5">
+                        <div class="spinner-border text-primary mb-3" style="width: 2.5rem; height: 2.5rem;" role="status"></div>
+                        <p class="text-white fw-semibold mb-1"><?= I18n::t('diag_scanning') ?></p>
+                        <p class="text-secondary small mb-0"><?= I18n::t('rebuild_point_files') ?></p>
+                    </div>
+
+                    <!-- 2. Error State -->
+                    <div id="diagErrorState" class="d-none p-4 rounded-4 text-center" style="background: rgba(239, 68, 68, 0.08); border: 1px solid rgba(239, 68, 68, 0.25);">
+                        <div class="text-danger mb-2"><?= Icon::get('alert-triangle', '', 28) ?></div>
+                        <h6 class="text-white fw-bold mb-1" id="diagErrorMessage">Error occurred</h6>
+                        <button type="button" id="diagRetryBtn" class="btn btn-tamoza-secondary btn-sm mt-3 px-3">
+                            <?= Icon::get('refresh', '', 14) ?> <span class="ms-1">إعادة المحاولة</span>
+                        </button>
+                    </div>
+
+                    <!-- 3. Diagnostic Cards Content -->
+                    <div id="diagContent" class="d-none">
+                        <p class="text-secondary small mb-3"><?= I18n::t('diag_subtitle') ?></p>
+                        <div class="d-flex flex-column gap-3">
+                            
+                            <!-- Card 1: Missing Files -->
+                            <div id="diagMissingCard" class="p-3 rounded-4" style="background: rgba(239, 68, 68, 0.05); border: 1px solid rgba(239, 68, 68, 0.25);">
+                                <div class="d-flex align-items-start gap-3">
+                                    <div class="form-check mt-1">
+                                        <input class="form-check-input" type="checkbox" id="chkRestoreMissing" checked style="cursor: pointer; width: 1.15em; height: 1.15em;">
+                                    </div>
+                                    <div class="flex-grow-1">
+                                        <div class="d-flex align-items-center justify-content-between">
+                                            <label for="chkRestoreMissing" id="lblRestoreMissing" class="fw-bold text-white small mb-0" style="cursor: pointer;">
+                                                <?= I18n::t('diag_missing_title') ?>
+                                            </label>
+                                            <span id="diagMissingBadge" class="badge rounded-pill bg-danger-subtle text-danger small"></span>
+                                        </div>
+                                        <p class="text-secondary mb-1" style="font-size: 11.5px;"><?= I18n::t('diag_missing_desc') ?></p>
+                                        <div id="diagMissingListContainer" class="d-none mt-2">
+                                            <div id="diagMissingFilesList" class="p-2 rounded-3 font-monospace text-start" dir="ltr" style="background: rgba(0, 0, 0, 0.45); border: 1px solid var(--tamoza-border); max-height: 90px; overflow-y: auto; font-size: 11px; color: #FCA5A5;"></div>
+                                        </div>
+                                        <a href="javascript:void(0)" id="toggleMissingFilesBtn" class="d-none small text-primary text-decoration-none mt-1 d-inline-block" style="font-size: 11px;">
+                                            <?= I18n::t('diag_view_files') ?>
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Card 2: Modified Files -->
+                            <div id="diagModifiedCard" class="p-3 rounded-4" style="background: rgba(245, 158, 11, 0.05); border: 1px solid rgba(245, 158, 11, 0.25);">
+                                <div class="d-flex align-items-start gap-3">
+                                    <div class="form-check mt-1">
+                                        <input class="form-check-input" type="checkbox" id="chkRestoreModified" style="cursor: pointer; width: 1.15em; height: 1.15em;">
+                                    </div>
+                                    <div class="flex-grow-1">
+                                        <div class="d-flex align-items-center justify-content-between">
+                                            <label for="chkRestoreModified" id="lblRestoreModified" class="fw-bold text-white small mb-0" style="cursor: pointer;">
+                                                <?= I18n::t('diag_modified_title') ?>
+                                            </label>
+                                            <span id="diagModifiedBadge" class="badge rounded-pill bg-warning-subtle text-warning small"></span>
+                                        </div>
+                                        <p class="text-secondary mb-1" style="font-size: 11.5px;"><?= I18n::t('diag_modified_desc') ?></p>
+                                        <div id="diagModifiedListContainer" class="d-none mt-2">
+                                            <div id="diagModifiedFilesList" class="p-2 rounded-3 font-monospace text-start" dir="ltr" style="background: rgba(0, 0, 0, 0.45); border: 1px solid var(--tamoza-border); max-height: 90px; overflow-y: auto; font-size: 11px; color: #FCD34D;"></div>
+                                        </div>
+                                        <a href="javascript:void(0)" id="toggleModifiedFilesBtn" class="d-none small text-primary text-decoration-none mt-1 d-inline-block" style="font-size: 11px;">
+                                            <?= I18n::t('diag_view_files') ?>
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Card 3: Custom / Extra Files (Untracked) -->
+                            <div id="diagUntrackedCard" class="p-3 rounded-4 d-none" style="background: rgba(34, 211, 238, 0.05); border: 1px solid rgba(34, 211, 238, 0.25);">
+                                <div class="d-flex align-items-start gap-3">
+                                    <div class="text-cyan mt-1"><?= Icon::get('info', 'text-cyan', 16) ?></div>
+                                    <div class="flex-grow-1">
+                                        <div class="d-flex align-items-center justify-content-between">
+                                            <span class="fw-bold text-white small"><?= I18n::t('diag_untracked_title') ?></span>
+                                            <span id="diagUntrackedBadge" class="badge rounded-pill bg-info-subtle text-info small"><?= I18n::t('diag_untracked_safe') ?></span>
+                                        </div>
+                                        <p class="text-secondary mb-1" style="font-size: 11.5px;"><?= I18n::t('diag_untracked_desc') ?></p>
+                                        <div id="diagUntrackedListContainer" class="d-none mt-2">
+                                            <div id="diagUntrackedFilesList" class="p-2 rounded-3 font-monospace text-start" dir="ltr" style="background: rgba(0, 0, 0, 0.45); border: 1px solid var(--tamoza-border); max-height: 90px; overflow-y: auto; font-size: 11px; color: #67E8F9;"></div>
+                                        </div>
+                                        <a href="javascript:void(0)" id="toggleUntrackedFilesBtn" class="small text-info text-decoration-none mt-1 d-inline-block" style="font-size: 11px;">
+                                            <?= I18n::t('diag_view_files') ?>
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Card 4: SQLite Database Maintenance -->
+                            <div id="diagDbCard" class="p-3 rounded-4" style="background: rgba(16, 185, 129, 0.05); border: 1px solid rgba(16, 185, 129, 0.25);">
+                                <div class="d-flex align-items-start gap-3">
+                                    <div class="form-check mt-1">
+                                        <input class="form-check-input" type="checkbox" id="chkOptimizeDb" checked style="cursor: pointer; width: 1.15em; height: 1.15em;">
+                                    </div>
+                                    <div class="flex-grow-1">
+                                        <div class="d-flex align-items-center justify-content-between">
+                                            <label for="chkOptimizeDb" class="fw-bold text-white small mb-0" style="cursor: pointer;">
+                                                <?= I18n::t('diag_db_title') ?>
+                                            </label>
+                                            <span id="diagDbBadge" class="badge rounded-pill bg-success-subtle text-success small"><?= I18n::t('diag_db_status_ok') ?></span>
+                                        </div>
+                                        <p class="text-secondary mb-1" style="font-size: 11.5px;"><?= I18n::t('diag_db_desc') ?></p>
+                                        <div class="text-secondary small d-flex align-items-center gap-2" style="font-size: 11px;">
+                                            <span><?= Icon::get('database', '', 12) ?> <span id="diagDbSizeText">--</span></span>
+                                            <span>•</span>
+                                            <span>WAL: <span id="diagWalSizeText">--</span></span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                        </div>
                     </div>
                 </div>
-                <div class="modal-footer border-0 pt-0">
-                    <button type="button" class="btn btn-tamoza-subtle btn-sm px-3" data-bs-dismiss="modal"><?= I18n::t('update_dismiss_btn') ?></button>
-                    <button type="button" class="btn btn-tamoza-primary btn-sm px-4 d-inline-flex align-items-center gap-2" id="startRebuildExecutionBtn">
+
+                <div class="modal-footer border-0 pt-0 d-flex justify-content-between align-items-center">
+                    <button type="button" class="btn btn-tamoza-subtle btn-sm px-3" data-bs-dismiss="modal"><?= I18n::t('cancel_btn') ?></button>
+                    <button type="button" class="btn btn-tamoza-primary btn-sm px-4 d-inline-flex align-items-center gap-2 shadow-sm" id="startRebuildExecutionBtn">
                         <?= Icon::get('tool', '', 14) ?>
-                        <span><?= I18n::t('rebuild_start_btn') ?></span>
+                        <span><?= I18n::t('diag_apply_btn') ?></span>
+                        <span id="diagTaskCountBadge" class="badge bg-white bg-opacity-25 rounded-pill px-2 py-0.5 ms-1" style="font-size: 10px;"></span>
                     </button>
                 </div>
             </div>
+
 
             <!-- Step 2: Execution & Progress Bar View -->
             <div id="rebuildProgressView" class="d-none">
@@ -617,9 +715,20 @@ document.addEventListener('DOMContentLoaded', function () {
         rocketIconSmall: <?= json_encode(Icon::get('rocket', '', 15)) ?>,
         csrfToken: <?= json_encode(Helpers::csrfToken()) ?>,
         checkUrl: <?= json_encode(Helpers::baseUrl('index.php?action=check_updates')) ?>,
-        applyUrl: <?= json_encode(Helpers::baseUrl('index.php?action=apply_update')) ?>,
-        rebuildUrl: <?= json_encode(Helpers::baseUrl('index.php?action=rebuild_repair')) ?>
+        rebuildUrl: <?= json_encode(Helpers::baseUrl('index.php?action=rebuild_repair')) ?>,
+        diagnoseUrl: <?= json_encode(Helpers::baseUrl('index.php?action=diagnose_system')) ?>,
+        diagTasksCount: <?= json_encode(I18n::t('diag_tasks_count')) ?>,
+        diagTaskOne: <?= json_encode(I18n::t('diag_task_one')) ?>,
+        diagTaskTwo: <?= json_encode(I18n::t('diag_task_two')) ?>,
+        diagNoTasks: <?= json_encode(I18n::t('diag_no_tasks')) ?>,
+        diagMissingNone: <?= json_encode(I18n::t('diag_missing_none')) ?>,
+        diagMissingCount: <?= json_encode(I18n::t('diag_missing_count')) ?>,
+        diagModifiedNone: <?= json_encode(I18n::t('diag_modified_none')) ?>,
+        diagModifiedCount: <?= json_encode(I18n::t('diag_modified_count')) ?>,
+        diagViewFiles: <?= json_encode(I18n::t('diag_view_files')) ?>,
+        diagHideFiles: <?= json_encode(I18n::t('diag_hide_files')) ?>
     };
+
 
     const updateModalEl = document.getElementById('systemUpdateModal');
     let systemModalInstance = null;
@@ -920,6 +1029,218 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     }
 
+    // Helper: Dynamic Task Counter Calculation
+    const updateDiagTaskCounter = () => {
+        let count = 0;
+        const chkMissing = document.getElementById('chkRestoreMissing');
+        const chkModified = document.getElementById('chkRestoreModified');
+        const chkDb = document.getElementById('chkOptimizeDb');
+        const badge = document.getElementById('diagTaskCountBadge');
+        const btn = document.getElementById('startRebuildExecutionBtn');
+
+        if (chkMissing && chkMissing.checked && !chkMissing.disabled) count++;
+        if (chkModified && chkModified.checked && !chkModified.disabled) count++;
+        if (chkDb && chkDb.checked) count++;
+
+        if (badge) {
+            if (count === 0) {
+                badge.textContent = updateI18n.diagNoTasks;
+                if (btn) {
+                    btn.disabled = true;
+                    btn.classList.add('opacity-50');
+                }
+            } else {
+                if (btn) {
+                    btn.disabled = false;
+                    btn.classList.remove('opacity-50');
+                }
+                if (count === 1) {
+                    badge.textContent = updateI18n.diagTaskOne;
+                } else if (count === 2) {
+                    badge.textContent = updateI18n.diagTaskTwo;
+                } else {
+                    badge.textContent = updateI18n.diagTasksCount.replace(':count', count);
+                }
+            }
+        }
+    };
+
+    // Helper: Render list of files as monospaced badges
+    const renderFilesList = (containerEl, filesArray) => {
+        if (!containerEl) return;
+        containerEl.innerHTML = '';
+        if (!filesArray || filesArray.length === 0) return;
+        filesArray.forEach(file => {
+            const div = document.createElement('div');
+            div.className = 'py-0.5 text-truncate';
+            div.textContent = file;
+            containerEl.appendChild(div);
+        });
+    };
+
+    // Helper: Setup toggle button for collapsible file lists
+    const setupFileListToggle = (btnId, containerId) => {
+        const btn = document.getElementById(btnId);
+        const container = document.getElementById(containerId);
+        if (btn && container) {
+            btn.onclick = (e) => {
+                e.preventDefault();
+                const isHidden = container.classList.contains('d-none');
+                if (isHidden) {
+                    container.classList.remove('d-none');
+                    btn.textContent = updateI18n.diagHideFiles;
+                } else {
+                    container.classList.add('d-none');
+                    btn.textContent = updateI18n.diagViewFiles;
+                }
+            };
+        }
+    };
+
+    setupFileListToggle('toggleMissingFilesBtn', 'diagMissingListContainer');
+    setupFileListToggle('toggleModifiedFilesBtn', 'diagModifiedListContainer');
+    setupFileListToggle('toggleUntrackedFilesBtn', 'diagUntrackedListContainer');
+
+    // Run Pre-Repair Diagnostic Scan
+    const runSystemDiagnostics = () => {
+        const loadingState = document.getElementById('diagLoadingState');
+        const errorState = document.getElementById('diagErrorState');
+        const contentState = document.getElementById('diagContent');
+        const headerBadge = document.getElementById('diagHeaderBadge');
+
+        if (loadingState) loadingState.classList.remove('d-none');
+        if (errorState) errorState.classList.add('d-none');
+        if (contentState) contentState.classList.add('d-none');
+        if (headerBadge) headerBadge.classList.add('d-none');
+
+        const formData = new FormData();
+        formData.append('csrf_token', updateI18n.csrfToken);
+
+        fetch(updateI18n.diagnoseUrl, {
+            method: 'POST',
+            body: formData,
+            headers: { 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'application/json' }
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (!data || !data.success) {
+                throw new Error(data.message || 'Diagnostic scan failed.');
+            }
+
+            // 1. Missing Files Setup
+            const chkMissing = document.getElementById('chkRestoreMissing');
+            const badgeMissing = document.getElementById('diagMissingBadge');
+            const toggleMissing = document.getElementById('toggleMissingFilesBtn');
+            const listMissing = document.getElementById('diagMissingFilesList');
+            const missingFiles = data.missing_files || [];
+
+            if (missingFiles.length > 0) {
+                chkMissing.checked = true;
+                chkMissing.disabled = false;
+                badgeMissing.className = 'badge rounded-pill bg-danger-subtle text-danger small';
+                badgeMissing.textContent = updateI18n.diagMissingCount.replace(':count', missingFiles.length);
+                renderFilesList(listMissing, missingFiles);
+                if (toggleMissing) toggleMissing.classList.remove('d-none');
+            } else {
+                chkMissing.checked = false;
+                chkMissing.disabled = true;
+                badgeMissing.className = 'badge rounded-pill bg-success-subtle text-success small';
+                badgeMissing.textContent = updateI18n.diagMissingNone;
+                if (toggleMissing) toggleMissing.classList.add('d-none');
+            }
+
+            // 2. Modified Files Setup
+            const chkModified = document.getElementById('chkRestoreModified');
+            const badgeModified = document.getElementById('diagModifiedBadge');
+            const toggleModified = document.getElementById('toggleModifiedFilesBtn');
+            const listModified = document.getElementById('diagModifiedFilesList');
+            const modifiedFiles = data.modified_files || [];
+
+            if (modifiedFiles.length > 0) {
+                chkModified.checked = false; // Safe default: unselected
+                chkModified.disabled = false;
+                badgeModified.className = 'badge rounded-pill bg-warning-subtle text-warning small';
+                badgeModified.textContent = updateI18n.diagModifiedCount.replace(':count', modifiedFiles.length);
+                renderFilesList(listModified, modifiedFiles);
+                if (toggleModified) toggleModified.classList.remove('d-none');
+            } else {
+                chkModified.checked = false;
+                chkModified.disabled = true;
+                badgeModified.className = 'badge rounded-pill bg-success-subtle text-success small';
+                badgeModified.textContent = updateI18n.diagModifiedNone;
+                if (toggleModified) toggleModified.classList.add('d-none');
+            }
+
+            // 3. Untracked / Custom Files Setup
+            const untrackedCard = document.getElementById('diagUntrackedCard');
+            const badgeUntracked = document.getElementById('diagUntrackedBadge');
+            const toggleUntracked = document.getElementById('toggleUntrackedFilesBtn');
+            const listUntracked = document.getElementById('diagUntrackedFilesList');
+            const untrackedFiles = data.untracked_files || [];
+
+            if (untrackedFiles.length > 0) {
+                if (untrackedCard) untrackedCard.classList.remove('d-none');
+                if (badgeUntracked) badgeUntracked.textContent = 'محفوظة بأمان (' + untrackedFiles.length + ')';
+                renderFilesList(listUntracked, untrackedFiles);
+                if (toggleUntracked) toggleUntracked.classList.remove('d-none');
+            } else {
+                if (untrackedCard) untrackedCard.classList.add('d-none');
+            }
+
+            // 4. Database Setup
+            const chkDb = document.getElementById('chkOptimizeDb');
+            const badgeDb = document.getElementById('diagDbBadge');
+            const sizeDb = document.getElementById('diagDbSizeText');
+            const sizeWal = document.getElementById('diagWalSizeText');
+
+            if (chkDb) chkDb.checked = true;
+            if (sizeDb && data.database) sizeDb.textContent = data.database.size || '--';
+            if (sizeWal && data.database) sizeWal.textContent = data.database.wal_size || '--';
+            if (badgeDb && data.database) {
+                if (data.database.healthy) {
+                    badgeDb.className = 'badge rounded-pill bg-success-subtle text-success small';
+                    badgeDb.textContent = 'سليمة 100%';
+                } else {
+                    badgeDb.className = 'badge rounded-pill bg-warning-subtle text-warning small';
+                    badgeDb.textContent = data.database.integrity;
+                }
+            }
+
+            // Update tasks count
+            updateDiagTaskCounter();
+
+            // Display loaded view
+            if (loadingState) loadingState.classList.add('d-none');
+            if (contentState) contentState.classList.remove('d-none');
+            if (headerBadge) headerBadge.classList.remove('d-none');
+        })
+        .catch(err => {
+            if (loadingState) loadingState.classList.add('d-none');
+            if (errorState) {
+                errorState.classList.remove('d-none');
+                const errMsg = document.getElementById('diagErrorMessage');
+                if (errMsg) errMsg.textContent = err.message || 'Diagnostic error';
+            }
+        });
+    };
+
+    // Attach checkbox change events
+    ['chkRestoreMissing', 'chkRestoreModified', 'chkOptimizeDb'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) {
+            el.addEventListener('change', updateDiagTaskCounter);
+        }
+    });
+
+    // Diagnostic Retry Button
+    const diagRetryBtn = document.getElementById('diagRetryBtn');
+    if (diagRetryBtn) {
+        diagRetryBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            runSystemDiagnostics();
+        });
+    }
+
     // 6. Trigger Rebuild & Repair Flow
     const triggerRebuildBtn = document.getElementById('triggerRebuildBtn');
     if (triggerRebuildBtn) {
@@ -933,10 +1254,11 @@ document.addEventListener('DOMContentLoaded', function () {
                 progressView.classList.add('d-none');
             }
             rebuildModalInstance.show();
+            runSystemDiagnostics();
         });
     }
 
-    // 7. Start Rebuild Execution after User Confirmation
+    // 7. Start Rebuild Execution after User Selection
     const startRebuildExecutionBtn = document.getElementById('startRebuildExecutionBtn');
     if (startRebuildExecutionBtn) {
         startRebuildExecutionBtn.addEventListener('click', function () {
@@ -982,8 +1304,16 @@ document.addEventListener('DOMContentLoaded', function () {
                 }
             }, 1200);
 
+            const chkMissing = document.getElementById('chkRestoreMissing');
+            const chkModified = document.getElementById('chkRestoreModified');
+            const chkDb = document.getElementById('chkOptimizeDb');
+
             const formData = new FormData();
             formData.append('csrf_token', updateI18n.csrfToken);
+            formData.append('restore_missing', (chkMissing && chkMissing.checked) ? '1' : '0');
+            formData.append('restore_modified', (chkModified && chkModified.checked) ? '1' : '0');
+            formData.append('backup_mods', '1');
+            formData.append('optimize_db', (chkDb && chkDb.checked) ? '1' : '0');
 
             fetch(updateI18n.rebuildUrl, {
                 method: 'POST',
@@ -1035,6 +1365,7 @@ document.addEventListener('DOMContentLoaded', function () {
             });
         });
     }
+
 
     // 8. Seamless Automatic Check on Page Load
     const runAutoCheckOnPageLoad = () => {
