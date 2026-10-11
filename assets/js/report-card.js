@@ -588,6 +588,7 @@
                 ctx.textAlign = rtl ? 'right' : 'left';
                 ctx.fillStyle = '#CBD5E1';
                 ctx.font = '600 12.5px ' + font;
+                const cX = rtl ? col1X + col3W - 18 : col1X + 18;
                 const countryText = (c.country_name || c.country_code || 'XX');
                 const dispCountry = countryText.length > 20 ? countryText.slice(0, 18) + '..' : countryText;
                 ctx.fillText('● ' + dispCountry, cX, cY);
