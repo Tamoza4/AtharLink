@@ -1,0 +1,119 @@
+# ==============================================================================
+# AtharLink - Production Nginx Server Configuration Sample
+# ==============================================================================
+# Copy and adapt this block to your Nginx sites-available/ or nginx.conf.
+# Ensure you replace 'example.com' and the root path with your actual setup.
+
+server {
+    listen 80;
+    listen [::]:80;
+    server_name example.com www.example.com;
+
+    # Recommended: Redirect HTTP to HTTPS
+    return 301 https://$host$request_uri;
+}
+
+server {
+    listen 443 ssl http2;
+    listen [::]:443 ssl http2;
+    server_name example.com www.example.com;
+
+    root /var/www/atharlink;
+    index index.php;
+
+    charset utf-8;
+
+    # SSL Configuration (Example with Let's Encrypt certificates)
+    # ssl_certificate /etc/letsencrypt/live/example.com/fullchain.pem;
+    # ssl_certificate_key /etc/letsencrypt/live/example.com/privkey.pem;
+    # ssl_protocols TLSv1.2 TLSv1.3;
+    # ssl_ciphers HIGH:!aNULL:!MD5;
+
+    # --------------------------------------------------------------------------
+    # 1. CRITICAL SECURITY: Block Sensitive Directories & Files
+    # --------------------------------------------------------------------------
+    # Completely block access to internal storage (database, keys, cache)
+    location ^~ /storage/ {
+        deny all;
+        return 403;
+    }
+
+    # Completely block access to CLI tools and scripts
+    location ^~ /bin/ {
+        deny all;
+        return 403;
+    }
+
+    # Block access to hidden files and dotfiles (.git, .env, .htaccess, etc.)
+    location ~ /\. {
+        deny all;
+        access_log off;
+        log_not_found off;
+        return 403;
+    }
+
+    # Block sensitive file extensions anywhere in the application
+    location ~* \.(sqlite|lock|env|log|bak|sql|sh)$ {
+        deny all;
+        access_log off;
+        log_not_found off;
+        return 403;
+    }
+
+    # --------------------------------------------------------------------------
+    # 2. OWASP Recommended Security Headers
+    # --------------------------------------------------------------------------
+    add_header X-Content-Type-Options "nosniff" always;
+    add_header X-Frame-Options "SAMEORIGIN" always;
+    add_header Referrer-Policy "strict-origin-when-cross-origin" always;
+    add_header Permissions-Policy "geolocation=(), microphone=(), camera=(), payment=()" always;
+    add_header Strict-Transport-Security "max-age=31536000; includeSubDomains; preload" always;
+    add_header Content-Security-Policy "default-src 'self' data: blob:; script-src 'self' 'unsafe-inline' blob:; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: blob: https:; connect-src 'self' https://api.github.com; object-src 'none'; base-uri 'self';" always;
+
+    # --------------------------------------------------------------------------
+    # 3. Static Asset Caching
+    # --------------------------------------------------------------------------
+    location ~* \.(css|js|png|jpg|jpeg|gif|ico|svg|woff|woff2|ttf|eot)$ {
+        expires 30d;
+        add_header Cache-Control "public, no-transform";
+        access_log off;
+        log_not_found off;
+        try_files $uri =404;
+    }
+
+    # --------------------------------------------------------------------------
+    # 4. AtharLink Routing Rules
+    # --------------------------------------------------------------------------
+    # Fast redirect engine
+    location ^~ /r/ {
+        rewrite ^/r/(.*)$ /r.php?slug=$1 last;
+    }
+
+    # RESTful API routing
+    location ^~ /api/v1/ {
+        rewrite ^/api/v1/?(.*)$ /api/v1/index.php last;
+    }
+
+    # Dynamic SVG badge generator
+    location = /badge.php {
+        include fastcgi_params;
+        fastcgi_pass unix:/run/php/php8.2-fpm.sock; # Adjust to your PHP-FPM socket
+        fastcgi_param SCRIPT_FILENAME $document_root$fastcgi_script_name;
+    }
+
+    # Main application router
+    location / {
+        try_files $uri $uri/ /index.php?$query_string;
+    }
+
+    # --------------------------------------------------------------------------
+    # 5. PHP-FPM Execution
+    # --------------------------------------------------------------------------
+    location ~ \.php$ {
+        include fastcgi_params;
+        fastcgi_pass unix:/run/php/php8.2-fpm.sock; # Adjust to your PHP-FPM socket/port
+        fastcgi_index index.php;
+        fastcgi_param SCRIPT_FILENAME $document_root$fastcgi_script_name;
+        fastcgi_read_timeout 60;
+    }
+}

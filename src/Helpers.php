@@ -222,25 +222,143 @@ class Helpers
     }
 
     /**
-     * Get Client IP Address with proxy support
+     * Sanitize cell value for CSV / Excel to prevent Formula Injection (CWE-1236)
+     */
+    public static function sanitizeForCsv(mixed $value): string
+    {
+        $str = (string)($value ?? '');
+        $trimmed = ltrim($str);
+        if ($trimmed !== '' && in_array($trimmed[0], ['=', '+', '-', '@', "\t", "\r", '%'], true)) {
+            return "'" . $str;
+        }
+        return $str;
+    }
+
+    /**
+     * Check if an IP address belongs to a CIDR subnet (IPv4 & IPv6)
+     */
+    public static function ipInCidr(string $ip, string $range): bool
+    {
+        if (!str_contains($range, '/')) {
+            return $ip === $range;
+        }
+
+        [$subnet, $bitsStr] = explode('/', $range, 2);
+        $bits = (int)$bitsStr;
+
+        // IPv4 CIDR matching
+        if (filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4) && filter_var($subnet, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4)) {
+            if ($bits < 0 || $bits > 32) {
+                return false;
+            }
+            $ipLong = ip2long($ip);
+            $subnetLong = ip2long($subnet);
+            $mask = $bits === 0 ? 0 : (-1 << (32 - $bits));
+            return ($ipLong & $mask) === ($subnetLong & $mask);
+        }
+
+        // IPv6 CIDR matching
+        if (filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_IPV6) && filter_var($subnet, FILTER_VALIDATE_IP, FILTER_FLAG_IPV6)) {
+            if ($bits < 0 || $bits > 128) {
+                return false;
+            }
+            $ipBin = inet_pton($ip);
+            $subnetBin = inet_pton($subnet);
+            if ($ipBin === false || $subnetBin === false) {
+                return false;
+            }
+
+            $bytes = (int)($bits / 8);
+            $remainingBits = $bits % 8;
+
+            if ($bytes > 0 && substr($ipBin, 0, $bytes) !== substr($subnetBin, 0, $bytes)) {
+                return false;
+            }
+            if ($remainingBits > 0) {
+                $mask = 0xFF << (8 - $remainingBits);
+                if ((ord($ipBin[$bytes]) & $mask) !== (ord($subnetBin[$bytes]) & $mask)) {
+                    return false;
+                }
+            }
+            return true;
+        }
+
+        return false;
+    }
+
+    /**
+     * Check if a remote address is a trusted proxy, local loopback, or Cloudflare node
+     */
+    public static function isTrustedProxy(string $remoteAddr): bool
+    {
+        if ($remoteAddr === '127.0.0.1' || $remoteAddr === '::1' || str_starts_with($remoteAddr, '127.')) {
+            return true;
+        }
+
+        // Private / internal network ranges (RFC 1918 & RFC 4193)
+        if (filter_var($remoteAddr, FILTER_VALIDATE_IP, FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE) === false) {
+            return true;
+        }
+
+        // Custom trusted proxies defined in config
+        if (defined('TRUSTED_PROXIES') && is_array(TRUSTED_PROXIES)) {
+            foreach (TRUSTED_PROXIES as $trusted) {
+                if (self::ipInCidr($remoteAddr, (string)$trusted)) {
+                    return true;
+                }
+            }
+        }
+
+        // Cloudflare official IP ranges
+        $cfRanges = [
+            // IPv4
+            '173.245.48.0/20', '103.21.244.0/22', '103.22.200.0/22', '103.31.4.0/22',
+            '141.101.64.0/18', '108.162.192.0/18', '190.93.240.0/20', '188.114.96.0/20',
+            '197.234.240.0/22', '198.41.128.0/17', '162.158.0.0/15', '104.16.0.0/13',
+            '104.24.0.0/14', '172.64.0.0/13', '131.0.72.0/22',
+            // IPv6
+            '2400:cb00::/32', '2606:4700::/32', '2803:f800::/32', '2405:b500::/32',
+            '2405:8100::/32', '2a06:98c0::/29', '2c0f:f248::/32'
+        ];
+
+        foreach ($cfRanges as $cidr) {
+            if (self::ipInCidr($remoteAddr, $cidr)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * Get Client IP Address with hardened proxy validation (anti-spoofing)
      */
     public static function getClientIp(): string
     {
-        $headers = [
-            'HTTP_CF_CONNECTING_IP', // Cloudflare
-            'HTTP_X_FORWARDED_FOR',  // Standard proxy
-            'HTTP_CLIENT_IP',
-            'REMOTE_ADDR'
-        ];
+        $remoteAddr = $_SERVER['REMOTE_ADDR'] ?? '127.0.0.1';
 
-        foreach ($headers as $header) {
-            if (!empty($_SERVER[$header])) {
-                $ips = explode(',', (string)$_SERVER[$header]);
-                $ip = trim($ips[0]);
-                if (filter_var($ip, FILTER_VALIDATE_IP)) {
-                    return $ip;
+        // Only evaluate forwarding headers if direct connection originates from a trusted proxy
+        if (self::isTrustedProxy($remoteAddr)) {
+            $headers = [
+                'HTTP_CF_CONNECTING_IP', // Cloudflare
+                'HTTP_X_FORWARDED_FOR',  // Standard reverse proxy
+                'HTTP_CLIENT_IP'
+            ];
+
+            foreach ($headers as $header) {
+                if (!empty($_SERVER[$header])) {
+                    $ips = explode(',', (string)$_SERVER[$header]);
+                    $ip = trim($ips[0]);
+                    if (filter_var($ip, FILTER_VALIDATE_IP)) {
+                        return $ip;
+                    }
                 }
             }
+        }
+
+        // Direct connection or untrusted proxy - REMOTE_ADDR cannot be spoofed by client
+        if (filter_var($remoteAddr, FILTER_VALIDATE_IP)) {
+            return $remoteAddr;
         }
 
         return '127.0.0.1';

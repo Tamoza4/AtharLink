@@ -10,11 +10,13 @@ require_once dirname(__DIR__, 2) . '/src/Helpers.php';
 require_once dirname(__DIR__, 2) . '/src/Database.php';
 require_once dirname(__DIR__, 2) . '/src/Auth.php';
 require_once dirname(__DIR__, 2) . '/src/LinkManager.php';
+require_once dirname(__DIR__, 2) . '/src/RateLimiter.php';
 
 use AtharLink\Helpers;
 use AtharLink\Auth;
 use AtharLink\LinkManager;
 use AtharLink\Database;
+use AtharLink\RateLimiter;
 
 // Set JSON headers & CORS
 header('Content-Type: application/json; charset=UTF-8');
@@ -47,6 +49,17 @@ $resource = $segments[0] ?? '';
 $param1 = $segments[1] ?? ($_GET['slug'] ?? null);
 
 $method = $_SERVER['REQUEST_METHOD'];
+
+// IP Rate Limiting: 60 requests per minute
+if (RateLimiter::isLocked('api', 60, 1)) {
+    http_response_code(429);
+    header('Retry-After: 60');
+    Helpers::json([
+        'success' => false,
+        'error'   => 'Too Many Requests: Rate limit of 60 requests per minute exceeded.'
+    ], 429);
+}
+RateLimiter::recordAttempt('api');
 
 // 1. PUBLIC COUNTER ENDPOINT (Zero token required, zero private data leaked)
 if ($resource === 'counter') {

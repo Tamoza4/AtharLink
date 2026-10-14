@@ -30,13 +30,13 @@ if (!headers_sent() && php_sapi_name() !== 'cli') {
         header('Strict-Transport-Security: max-age=31536000; includeSubDomains; preload');
     }
 
-    // Content-Security-Policy (CSP)
-    header("Content-Security-Policy: default-src 'self' data: blob:; script-src 'self' 'unsafe-inline' 'unsafe-eval' blob:; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: blob: https:; connect-src 'self' https://api.github.com; object-src 'none'; base-uri 'self';");
+    // Content-Security-Policy (CSP) - Hardened (Zero unsafe-eval)
+    header("Content-Security-Policy: default-src 'self' data: blob:; script-src 'self' 'unsafe-inline' blob:; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: blob: https:; connect-src 'self' https://api.github.com; object-src 'none'; base-uri 'self';");
 }
 
 // Application Constants
 define('APP_NAME', 'AtharLink');
-define('APP_VERSION', '1.0.15');
+define('APP_VERSION', '1.0.16');
 define('APP_ROOT', dirname(__DIR__));
 define('STORAGE_DIR', APP_ROOT . DIRECTORY_SEPARATOR . 'storage');
 define('DB_PATH', STORAGE_DIR . DIRECTORY_SEPARATOR . 'athar_database.sqlite');
@@ -50,6 +50,7 @@ define('DEFAULT_UNIQUENESS_WINDOW', 86400);
 // Rate Limiting Defaults
 define('MAX_LOGIN_ATTEMPTS', 5);
 define('LOGIN_LOCKOUT_MINUTES', 15);
+define('SESSION_IDLE_TIMEOUT', 7200); // 2 hours of inactivity in seconds
 
 // Secret Key for Cookie Signing and Hashing
 if (!function_exists('get_app_secret')) {

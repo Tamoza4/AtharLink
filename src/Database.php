@@ -102,6 +102,20 @@ class Database
                     CREATE INDEX IF NOT EXISTS idx_audit_logs_created ON audit_logs(created_at);
                 ");
             }
+
+            // Ensure rate_limits table exists
+            $rateTableExists = $pdo->query("SELECT name FROM sqlite_master WHERE type='table' AND name='rate_limits'")->fetchColumn();
+            if (!$rateTableExists) {
+                $pdo->exec("
+                    CREATE TABLE IF NOT EXISTS rate_limits (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        action_key TEXT NOT NULL,
+                        ip_address TEXT NOT NULL,
+                        attempted_at INTEGER NOT NULL
+                    );
+                    CREATE INDEX IF NOT EXISTS idx_rate_limits_lookup ON rate_limits(action_key, ip_address, attempted_at);
+                ");
+            }
         } catch (\Throwable $e) {
             error_log('AtharLink Migration Check Notice: ' . $e->getMessage());
         }
@@ -222,6 +236,17 @@ class Database
         ");
         $pdo->exec("CREATE INDEX IF NOT EXISTS idx_audit_logs_action ON audit_logs(action);");
         $pdo->exec("CREATE INDEX IF NOT EXISTS idx_audit_logs_created ON audit_logs(created_at);");
+
+        // 6. Rate Limiting Shield
+        $pdo->exec("
+            CREATE TABLE IF NOT EXISTS rate_limits (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                action_key TEXT NOT NULL,
+                ip_address TEXT NOT NULL,
+                attempted_at INTEGER NOT NULL
+            );
+        ");
+        $pdo->exec("CREATE INDEX IF NOT EXISTS idx_rate_limits_lookup ON rate_limits(action_key, ip_address, attempted_at);");
     }
 
     /**

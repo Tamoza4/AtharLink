@@ -295,8 +295,8 @@ use AtharLink\Icon;
 <script src="<?= Helpers::baseUrl('assets/js/bootstrap.bundle.min.js') ?>"></script>
 <script src="<?= Helpers::baseUrl('assets/js/chart.min.js') ?>"></script>
 <script src="<?= Helpers::baseUrl('assets/js/qrcode.min.js') ?>"></script>
-<script src="<?= Helpers::baseUrl('assets/js/app.js') ?>"></script>
-<script src="<?= Helpers::baseUrl('assets/js/report-card.js') ?>"></script>
+<script src="<?= Helpers::baseUrl('assets/js/app.min.js') ?>"></script>
+<script src="<?= Helpers::baseUrl('assets/js/report-card.min.js') ?>"></script>
 
 <script>
 // Modal Data Attribute Binder

@@ -142,6 +142,6 @@ $allChecksPassed = $phpVersionOk && $sqliteOk && $storageWritable;
     <?php endif; ?>
 </div>
 
-<script src="<?= Helpers::baseUrl('assets/js/app.js') ?>"></script>
+<script src="<?= Helpers::baseUrl('assets/js/app.min.js') ?>"></script>
 </body>
 </html>

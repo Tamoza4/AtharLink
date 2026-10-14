@@ -15,6 +15,7 @@
 # Keep the storage directory and its security rules
 !/storage/.htaccess
 !/storage/.gitkeep
+!/storage/index.php
 
 # Environment and Temporary Files
 .env

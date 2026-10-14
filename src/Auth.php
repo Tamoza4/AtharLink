@@ -6,6 +6,7 @@ namespace AtharLink;
 use PDO;
 
 require_once __DIR__ . '/AuditLogger.php';
+require_once __DIR__ . '/RateLimiter.php';
 
 /**
  * Authentication, Brute-Force Rate Limiting, and Session Manager
@@ -13,11 +14,23 @@ require_once __DIR__ . '/AuditLogger.php';
 class Auth
 {
     /**
-     * Check if current session is authenticated
+     * Check if current session is authenticated with inactivity timeout
      */
     public static function check(): bool
     {
-        return !empty($_SESSION['athar_user_id']);
+        if (empty($_SESSION['athar_user_id'])) {
+            return false;
+        }
+
+        // Enforce session idle timeout (default: 2 hours / 7200s)
+        $timeout = defined('SESSION_IDLE_TIMEOUT') ? SESSION_IDLE_TIMEOUT : 7200;
+        if (!empty($_SESSION['athar_last_activity']) && (time() - (int)$_SESSION['athar_last_activity']) > $timeout) {
+            self::logout();
+            return false;
+        }
+
+        $_SESSION['athar_last_activity'] = time();
+        return true;
     }
 
     /**
@@ -53,6 +66,22 @@ class Auth
     {
         $pdo = Database::getConnection();
         $username = trim($username);
+        $clientIp = Helpers::getClientIp();
+
+        // 1. IP-level brute-force shield (protects against non-existent user guessing and dictionary attacks)
+        if (RateLimiter::isLocked('login', MAX_LOGIN_ATTEMPTS, LOGIN_LOCKOUT_MINUTES, $clientIp)) {
+            $remainingMinutes = RateLimiter::getRemainingLockoutMinutes('login', LOGIN_LOCKOUT_MINUTES, $clientIp);
+            AuditLogger::log('login_locked_ip', 'Login blocked: IP rate limit exceeded', [
+                'ip'                => $clientIp,
+                'username'          => $username,
+                'remaining_minutes' => $remainingMinutes
+            ], $username, null);
+
+            return [
+                'success' => false,
+                'message' => I18n::t('account_locked_temp', ['minutes' => $remainingMinutes])
+            ];
+        }
 
         // Fetch user record
         $stmt = $pdo->prepare("SELECT * FROM users WHERE username = :u LIMIT 1");
@@ -74,6 +103,9 @@ class Auth
 
         // Verify password
         if (!$user || !password_verify($password, $user['password_hash'])) {
+            // Record failure on client IP
+            RateLimiter::recordAttempt('login', $clientIp);
+
             if ($user) {
                 $failedAttempts = (int)$user['failed_login_attempts'] + 1;
                 $lockedUntil = null;
@@ -112,7 +144,9 @@ class Auth
             ];
         }
 
-        // Success: Reset failed attempts & unlock
+        // Success: Reset failed attempts on IP & User account
+        RateLimiter::clearAttempts('login', $clientIp);
+
         $resetStmt = $pdo->prepare("
             UPDATE users 
             SET failed_login_attempts = 0, locked_until = NULL 
@@ -127,6 +161,7 @@ class Auth
         $_SESSION['athar_user_id'] = (int)$user['id'];
         $_SESSION['athar_username'] = $user['username'];
         $_SESSION['athar_logged_in_at'] = time();
+        $_SESSION['athar_last_activity'] = time();
 
         AuditLogger::log('login', 'User logged in: ' . $user['username'], ['username' => $user['username']], $user['username'], (int)$user['id']);
 
@@ -146,7 +181,7 @@ class Auth
         AuditLogger::log('logout', 'User logged out: ' . $uname, ['username' => $uname], $uname, $uid);
 
         $_SESSION = [];
-        if (ini_get('session.use_cookies')) {
+        if (ini_get('session.use_cookies') && !headers_sent()) {
             $params = session_get_cookie_params();
             setcookie(
                 session_name(),
@@ -311,12 +346,36 @@ class Auth
      */
     public static function resetPasswordWithRecoveryKey(string $recoveryKey, string $newPassword): array
     {
+        $clientIp = Helpers::getClientIp();
+
+        // 1. IP rate limiting on emergency recovery attempts
+        if (RateLimiter::isLocked('recovery', 5, 15, $clientIp)) {
+            $remainingMinutes = RateLimiter::getRemainingLockoutMinutes('recovery', 15, $clientIp);
+            AuditLogger::log('recovery_locked', 'Emergency recovery blocked: IP rate limit exceeded', [
+                'ip'                => $clientIp,
+                'remaining_minutes' => $remainingMinutes
+            ]);
+
+            return [
+                'success' => false,
+                'message' => I18n::t('account_locked_temp', ['minutes' => $remainingMinutes])
+            ];
+        }
+
         if (!self::verifyRecoveryKey($recoveryKey)) {
+            RateLimiter::recordAttempt('recovery', $clientIp);
+            AuditLogger::log('recovery_failed', 'Failed emergency recovery key attempt', [
+                'ip' => $clientIp
+            ]);
+
             return [
                 'success' => false,
                 'message' => I18n::t('recovery_key_invalid')
             ];
         }
+
+        // Key is valid - clear attempts
+        RateLimiter::clearAttempts('recovery', $clientIp);
 
         if (strlen($newPassword) < 8) {
             return [

@@ -167,6 +167,6 @@ $dir = I18n::getDir();
 </div>
 
 <script src="<?= Helpers::baseUrl('assets/js/bootstrap.bundle.min.js') ?>"></script>
-<script src="<?= Helpers::baseUrl('assets/js/app.js') ?>"></script>
+<script src="<?= Helpers::baseUrl('assets/js/app.min.js') ?>"></script>
 </body>
 </html>

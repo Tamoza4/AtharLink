@@ -1008,9 +1008,9 @@ class LinkManager
         foreach ($links as $l) {
             fputcsv($output, [
                 $l['id'],
-                $l['slug'],
-                $l['title'] ?? '',
-                $l['target_url'],
+                Helpers::sanitizeForCsv((string)$l['slug']),
+                Helpers::sanitizeForCsv((string)($l['title'] ?? '')),
+                Helpers::sanitizeForCsv((string)$l['target_url']),
                 $l['redirect_type'],
                 $l['is_active'] ? I18n::t('status_active') : I18n::t('status_paused'),
                 $l['total_clicks'],
@@ -1071,15 +1071,15 @@ class LinkManager
         foreach ($clicks as $c) {
             fputcsv($output, [
                 $c['id'],
-                $c['slug'],
-                $c['title'] ?? '',
-                !empty($c['ip_address']) ? $c['ip_address'] : ($c['ip_hash'] ?? ''),
+                Helpers::sanitizeForCsv((string)$c['slug']),
+                Helpers::sanitizeForCsv((string)($c['title'] ?? '')),
+                Helpers::sanitizeForCsv((string)(!empty($c['ip_address']) ? $c['ip_address'] : ($c['ip_hash'] ?? ''))),
                 $c['is_unique'] ? I18n::t('yes_label') : I18n::t('no_label'),
-                Helpers::getCountryName($c['country_code']) . ($c['country_code'] !== 'XX' ? ' (' . $c['country_code'] . ')' : ''),
-                $c['referrer_domain'] ?? I18n::t('direct_referrer'),
-                $c['device_type'],
-                $c['browser'],
-                $c['platform'],
+                Helpers::sanitizeForCsv((string)(Helpers::getCountryName($c['country_code']) . ($c['country_code'] !== 'XX' ? ' (' . $c['country_code'] . ')' : ''))),
+                Helpers::sanitizeForCsv((string)($c['referrer_domain'] ?? I18n::t('direct_referrer'))),
+                Helpers::sanitizeForCsv((string)$c['device_type']),
+                Helpers::sanitizeForCsv((string)$c['browser']),
+                Helpers::sanitizeForCsv((string)$c['platform']),
                 Helpers::formatDate($c['clicked_at'], 'Y-m-d H:i:s')
             ]);
         }
