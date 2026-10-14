@@ -273,8 +273,9 @@ class Updater
             $log[] = 'Backup warning: ' . $e->getMessage();
         }
 
-        // 3. Git pull (if .git folder is present)
-        $gitPulled = false;
+        // 3. Code update (Git pull or Standalone Repository Download)
+        $codeUpdated = false;
+        $filesUpdated = 0;
         $gitDir = APP_ROOT . DIRECTORY_SEPARATOR . '.git';
         if (is_dir($gitDir) && function_exists('exec')) {
             $output = [];
@@ -282,13 +283,98 @@ class Updater
             // Reset any modified tracked files first to prevent pull aborts
             @exec('cd ' . escapeshellarg(APP_ROOT) . ' && git reset --hard HEAD 2>&1 && git checkout -- . 2>&1 && git pull origin main 2>&1', $output, $code);
             if ($code === 0) {
-                $gitPulled = true;
+                $codeUpdated = true;
                 $log[] = 'Git pull completed: ' . implode(' ', $output);
             } else {
                 $log[] = 'Git pull notice: ' . implode(' ', $output);
             }
         } else {
-            $log[] = 'Running in non-git mode (code files are managed manually).';
+            // Standalone Mode: Fetch official files from repository
+            $repo = self::REPO;
+            $rawBase = "https://raw.githubusercontent.com/{$repo}/main/";
+
+            // Fetch remote checksums.json to determine changed/missing files
+            $newChecksumsUrl = $rawBase . 'config/checksums.json';
+            $newChecksumsRaw = null;
+            if (function_exists('curl_init')) {
+                $ch = curl_init($newChecksumsUrl);
+                curl_setopt_array($ch, [
+                    CURLOPT_RETURNTRANSFER => true,
+                    CURLOPT_TIMEOUT        => 6,
+                    CURLOPT_CONNECTTIMEOUT => 3,
+                    CURLOPT_USERAGENT      => 'AtharLink-Updater',
+                    CURLOPT_SSL_VERIFYPEER => true
+                ]);
+                $newChecksumsRaw = curl_exec($ch);
+                curl_close($ch);
+            } elseif (ini_get('allow_url_fopen')) {
+                $newChecksumsRaw = @file_get_contents($newChecksumsUrl);
+            }
+
+            $remoteChecksums = [];
+            if ($newChecksumsRaw) {
+                $remoteChecksums = json_decode((string)$newChecksumsRaw, true) ?: [];
+            }
+
+            $filesToDownload = [];
+            if (!empty($remoteChecksums)) {
+                foreach ($remoteChecksums as $fileRel => $remoteHash) {
+                    $localPath = APP_ROOT . DIRECTORY_SEPARATOR . str_replace('/', DIRECTORY_SEPARATOR, $fileRel);
+                    if (!file_exists($localPath) || hash_file('sha256', $localPath) !== $remoteHash) {
+                        $filesToDownload[] = $fileRel;
+                    }
+                }
+            } else {
+                $filesToDownload = self::CORE_MANIFEST;
+            }
+
+            foreach ($filesToDownload as $fileRel) {
+                if ($fileRel === 'config/checksums.json') {
+                    continue;
+                }
+                $targetPath = APP_ROOT . DIRECTORY_SEPARATOR . str_replace('/', DIRECTORY_SEPARATOR, $fileRel);
+                $downloadUrl = $rawBase . $fileRel;
+                $content = null;
+
+                if (function_exists('curl_init')) {
+                    $ch = curl_init($downloadUrl);
+                    curl_setopt_array($ch, [
+                        CURLOPT_RETURNTRANSFER => true,
+                        CURLOPT_TIMEOUT        => 8,
+                        CURLOPT_CONNECTTIMEOUT => 3,
+                        CURLOPT_USERAGENT      => 'AtharLink-Updater',
+                        CURLOPT_SSL_VERIFYPEER => true
+                    ]);
+                    $content = curl_exec($ch);
+                    $httpCode = (int)curl_getinfo($ch, CURLINFO_HTTP_CODE);
+                    curl_close($ch);
+                    if ($httpCode !== 200) {
+                        $content = null;
+                    }
+                } elseif (ini_get('allow_url_fopen')) {
+                    $content = @file_get_contents($downloadUrl);
+                }
+
+                if ($content !== null) {
+                    $parentDir = dirname($targetPath);
+                    if (!is_dir($parentDir)) {
+                        @mkdir($parentDir, 0755, true);
+                    }
+                    @file_put_contents($targetPath, $content);
+                    $filesUpdated++;
+                }
+            }
+
+            if ($newChecksumsRaw) {
+                @file_put_contents(APP_ROOT . '/config/checksums.json', $newChecksumsRaw);
+            }
+
+            if ($filesUpdated > 0) {
+                $codeUpdated = true;
+                $log[] = "Standalone update: {$filesUpdated} file(s) updated successfully from repository.";
+            } else {
+                $log[] = "Standalone update: All core code files are up to date.";
+            }
         }
 
         // 4. Schema migrations
@@ -321,7 +407,7 @@ class Updater
         // 7. Clear update check cache
         Database::setSetting(self::CACHE_KEY, '');
 
-        $msg = $gitPulled
+        $msg = $codeUpdated
             ? I18n::t('update_success_git')
             : I18n::t('update_success_db');
 

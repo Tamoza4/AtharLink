@@ -716,6 +716,7 @@ document.addEventListener('DOMContentLoaded', function () {
         rocketIconSmall: <?= json_encode(Icon::get('rocket', '', 15)) ?>,
         csrfToken: <?= json_encode(Helpers::csrfToken()) ?>,
         checkUrl: <?= json_encode(Helpers::baseUrl('index.php?action=check_updates')) ?>,
+        applyUrl: <?= json_encode(Helpers::baseUrl('index.php?action=apply_update')) ?>,
         rebuildUrl: <?= json_encode(Helpers::baseUrl('index.php?action=rebuild_repair')) ?>,
         diagnoseUrl: <?= json_encode(Helpers::baseUrl('index.php?action=diagnose_system')) ?>,
         diagTasksCount: <?= json_encode(I18n::t('diag_tasks_count')) ?>,
@@ -972,7 +973,14 @@ document.addEventListener('DOMContentLoaded', function () {
                 body: formData,
                 headers: { 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'application/json' }
             })
-            .then(res => res.json())
+            .then(async res => {
+                const text = await res.text();
+                try {
+                    return JSON.parse(text);
+                } catch (e) {
+                    throw new Error(text.length > 100 ? (text.replace(/<[^>]+>/g, '').trim().substring(0, 150) || 'Server returned invalid response') : text);
+                }
+            })
             .then(data => {
                 cancelBtn.disabled = false;
                 if (closeBtn) closeBtn.disabled = false;
