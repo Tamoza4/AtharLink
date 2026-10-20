@@ -129,12 +129,11 @@ $updateInfo = Updater::check();
             
             <div class="input-group mb-3">
                 <input type="password" id="apiTokenField" class="form-control tamoza-input font-monospace" value="<?= Helpers::e($user['api_token'] ?? '') ?>" readonly>
-                <button type="button" class="btn btn-tamoza-secondary d-flex align-items-center justify-content-center" id="toggleApiTokenBtn" title="<?= Helpers::e(I18n::t('toggle_password_tooltip')) ?>">
+                <button type="button" class="btn btn-tamoza-secondary d-flex align-items-center justify-content-center px-3" id="toggleApiTokenBtn" title="<?= Helpers::e(I18n::t('toggle_password_tooltip')) ?>">
                     <?= Icon::get('eye', '', 16) ?>
                 </button>
-                <button type="button" class="btn btn-tamoza-secondary d-inline-flex align-items-center gap-1" data-copy-url="<?= Helpers::e($user['api_token'] ?? '') ?>" title="<?= I18n::t('copy_token_title') ?>">
-                    <?= Icon::get('copy', '', 14) ?>
-                    <span><?= I18n::t('copy_btn') ?></span>
+                <button type="button" class="btn btn-tamoza-secondary d-flex align-items-center justify-content-center px-3" data-copy-url="<?= Helpers::e($user['api_token'] ?? '') ?>" title="<?= Helpers::e(I18n::t('copy_token_title')) ?>">
+                    <?= Icon::get('copy', '', 16) ?>
                 </button>
             </div>
 
@@ -157,12 +156,14 @@ $updateInfo = Updater::check();
 
             <div class="input-group mb-2">
                 <input type="password" id="recoveryKeyField" class="form-control tamoza-input font-monospace" value="<?= Helpers::e(Auth::getRecoveryKey()) ?>" readonly>
-                <button type="button" class="btn btn-tamoza-secondary d-flex align-items-center justify-content-center" id="toggleRecoveryKeyBtn" title="<?= Helpers::e(I18n::t('toggle_password_tooltip')) ?>">
+                <button type="button" class="btn btn-tamoza-secondary d-flex align-items-center justify-content-center px-3" id="toggleRecoveryKeyBtn" title="<?= Helpers::e(I18n::t('toggle_password_tooltip')) ?>">
                     <?= Icon::get('eye', '', 16) ?>
                 </button>
-                <button type="button" class="btn btn-tamoza-secondary d-inline-flex align-items-center gap-1" data-copy-url="<?= Helpers::e(Auth::getRecoveryKey()) ?>" title="<?= I18n::t('copy_btn') ?>">
-                    <?= Icon::get('copy', '', 14) ?>
-                    <span><?= I18n::t('copy_btn') ?></span>
+                <button type="button" class="btn btn-tamoza-secondary d-flex align-items-center justify-content-center px-3" data-copy-url="<?= Helpers::e(Auth::getRecoveryKey()) ?>" title="<?= Helpers::e(I18n::t('copy_btn')) ?>">
+                    <?= Icon::get('copy', '', 16) ?>
+                </button>
+                <button type="button" class="btn btn-tamoza-secondary d-flex align-items-center justify-content-center px-3" id="downloadRecoveryKeyBtn" title="<?= Helpers::e(I18n::t('download_recovery_key_title')) ?>">
+                    <?= Icon::get('download', '', 16) ?>
                 </button>
             </div>
         </div>
@@ -288,10 +289,13 @@ $updateInfo = Updater::check();
 
             <!-- Download Backup Button -->
             <div class="mb-4">
-                <a href="<?= Helpers::baseUrl('index.php?action=download_backup') ?>" class="btn btn-tamoza-secondary d-inline-flex align-items-center gap-2">
-                    <?= Icon::get('download', '', 16) ?>
-                    <span><?= I18n::t('download_backup_btn') ?></span>
-                </a>
+                <form method="POST" action="<?= Helpers::baseUrl('index.php?action=download_backup') ?>" class="d-inline">
+                    <?= Helpers::csrfInput() ?>
+                    <button type="submit" class="btn btn-tamoza-secondary d-inline-flex align-items-center gap-2">
+                        <?= Icon::get('download', '', 16) ?>
+                        <span><?= I18n::t('download_backup_btn') ?></span>
+                    </button>
+                </form>
             </div>
 
             <!-- Restore Backup Form -->
@@ -619,6 +623,31 @@ document.addEventListener('DOMContentLoaded', function () {
     bindSecretToggle('toggleApiTokenBtn', 'apiTokenField');
     bindSecretToggle('toggleRecoveryKeyBtn', 'recoveryKeyField');
 
+    // Emergency Recovery Key Download as .txt
+    const downloadKeyBtn = document.getElementById('downloadRecoveryKeyBtn');
+    if (downloadKeyBtn) {
+        downloadKeyBtn.addEventListener('click', function () {
+            const key = document.getElementById('recoveryKeyField').value;
+            const content = "========================================================\r\n" +
+                            "   AtharLink Emergency System Recovery Key\r\n" +
+                            "   Downloaded: " + new Date().toISOString() + "\r\n" +
+                            "========================================================\r\n\r\n" +
+                            "EMERGENCY RECOVERY KEY: " + key + "\r\n\r\n" +
+                            "Instructions:\r\n" +
+                            "Keep this key confidential in secure cold storage.\r\n" +
+                            "If you ever forget the administrator password, you can\r\n" +
+                            "use this key from the login screen to reset credentials.\r\n";
+            const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(blob);
+            a.download = 'athar_emergency_recovery_key.txt';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+        });
+    }
+
     // Admin Entrance URL Copy Button
     const copyAdminBtn = document.getElementById('copyAdminUrlBtn');
     const adminSlugInput = document.getElementById('adminLoginSlugInput');
@@ -627,7 +656,12 @@ document.addEventListener('DOMContentLoaded', function () {
             const baseUrl = <?= json_encode(rtrim(Helpers::baseUrl(), '/')) ?>;
             const slug = (adminSlugInput.value || 'admin').trim().replace(/^\/+|\/+$/g, '');
             const fullUrl = baseUrl + '/' + slug;
-            navigator.clipboard.writeText(fullUrl).then(() => {
+            const copyFn = window.copyTextSafely || function(t, s, f) {
+                if (navigator.clipboard && window.isSecureContext) {
+                    navigator.clipboard.writeText(t).then(s).catch(f);
+                } else { f(); }
+            };
+            copyFn(fullUrl, () => {
                 const originalHtml = copyAdminBtn.innerHTML;
                 copyAdminBtn.innerHTML = <?= json_encode(Icon::get('check', '', 14)) ?> + ' <span>' + (window.__i18n?.copied || <?= json_encode(I18n::t('copied_text')) ?>) + '</span>';
                 copyAdminBtn.classList.add('badge-success');
@@ -635,7 +669,7 @@ document.addEventListener('DOMContentLoaded', function () {
                     copyAdminBtn.innerHTML = originalHtml;
                     copyAdminBtn.classList.remove('badge-success');
                 }, 2000);
-            }).catch(() => {
+            }, () => {
                 prompt(window.__i18n?.copyManually || 'Copy URL:', fullUrl);
             });
         });

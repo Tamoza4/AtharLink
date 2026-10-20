@@ -234,6 +234,8 @@ class I18n
                 'back_to_login'             => 'العودة لتسجيل الدخول',
                 'emergency_card_title'      => 'رمز استرداد الطوارئ (Emergency Recovery Key)',
                 'emergency_card_desc'       => 'احتفظ بهذا الرمز في مكان آمن لاستخدامه في استعادة حساب الإدارة في حال نسيان كلمة المرور دون الحاجة لبريد إلكتروني.',
+                'download_recovery_key_btn' => 'تنزيل المفتاح (.txt)',
+                'download_recovery_key_title' => 'تنزيل مفتاح الاستعادة كملف نصي آمن للتخزين البارد',
 
                 // Settings View
                 'settings_title'            => 'الإعدادات، النسخ الاحتياطي، والـ API',
@@ -853,6 +855,8 @@ class I18n
                 'back_to_login'             => 'Back to Login',
                 'emergency_card_title'      => 'Emergency Recovery Key',
                 'emergency_card_desc'       => 'Keep this key in a secure vault to recover your admin account if you forget your password without requiring email setup.',
+                'download_recovery_key_btn' => 'Download Key (.txt)',
+                'download_recovery_key_title' => 'Download emergency recovery key as a secure text file for cold storage',
 
                 // Settings View
                 'settings_title'            => 'Settings, Backup & API',

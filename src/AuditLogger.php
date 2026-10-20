@@ -177,18 +177,20 @@ class AuditLogger
 
         // CSV export
         $output = fopen('php://temp', 'r+');
+        // UTF-8 BOM for spreadsheet Arabic compatibility
+        fwrite($output, "\xEF\xBB\xBF");
         fputcsv($output, ['ID', 'Timestamp', 'Username', 'Action', 'Description', 'Details', 'IP Address', 'User Agent']);
 
         foreach ($logs as $row) {
             fputcsv($output, [
                 $row['id'],
                 $row['created_at'],
-                $row['username'],
-                $row['action'],
-                $row['description'],
-                $row['details'] ?? '',
-                $row['ip_address'] ?? '',
-                $row['user_agent'] ?? ''
+                Helpers::sanitizeForCsv((string)$row['username']),
+                Helpers::sanitizeForCsv((string)$row['action']),
+                Helpers::sanitizeForCsv((string)$row['description']),
+                Helpers::sanitizeForCsv((string)($row['details'] ?? '')),
+                Helpers::sanitizeForCsv((string)($row['ip_address'] ?? '')),
+                Helpers::sanitizeForCsv((string)($row['user_agent'] ?? ''))
             ]);
         }
 

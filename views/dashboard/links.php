@@ -130,7 +130,7 @@ $activeFilter = $_GET['is_active'] ?? '';
                                             </span>
                                         <?php endif; ?>
                                         <?php if (!empty($l['password_hash']) || !empty($l['password_plain'])): ?>
-                                            <span class="tamoza-badge badge-warning" title="<?= !empty($l['password_plain']) ? Helpers::e(I18n::t('password_input_label')) . ': ' . Helpers::e($l['password_plain']) : Helpers::e(I18n::t('password_status_protected')) ?>">
+                                            <span class="tamoza-badge badge-warning" title="<?= Helpers::e(I18n::t('password_status_protected')) ?>">
                                                 <?= Icon::get('key', '', 11) ?>
                                             </span>
                                         <?php endif; ?>
@@ -251,7 +251,6 @@ $activeFilter = $_GET['is_active'] ?? '';
                                                     data-total-clicks="<?= (int)$l['total_clicks'] ?>"
                                                     data-unique-clicks="<?= (int)$l['unique_clicks'] ?>"
                                                     data-has-password="<?= (!empty($l['password_hash']) || !empty($l['password_plain'])) ? '1' : '0' ?>"
-                                                    data-password="<?= Helpers::e(Helpers::decryptSensitive($l['password_plain'] ?? null) ?? '') ?>"
                                                     data-auth-lang="<?= Helpers::e($l['auth_lang'] ?? 'auto') ?>"
                                                 >
                                                     <?= Icon::get('edit', '', 14) ?>
@@ -643,7 +642,6 @@ document.addEventListener('DOMContentLoaded', function () {
 
             // Password data & status
             const hasPass = btn.getAttribute('data-has-password') === '1';
-            const plainPass = btn.getAttribute('data-password') || '';
             const authLang = btn.getAttribute('data-auth-lang') || 'auto';
 
             const passInp = document.getElementById('editPasswordInput');
@@ -652,7 +650,8 @@ document.addEventListener('DOMContentLoaded', function () {
             const removeCheck = document.getElementById('editRemovePasswordCheck');
             const authLangSel = document.getElementById('editAuthLang');
 
-            passInp.value = plainPass;
+            passInp.value = '';
+            passInp.placeholder = hasPass ? '••••••••' : '<?= Helpers::e(I18n::t('password_input_placeholder')) ?>';
             passInp.type = 'password';
             if (toggleEditPassBtn) toggleEditPassBtn.innerHTML = eyeIconSvg;
             if (removeCheck) removeCheck.checked = false;

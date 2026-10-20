@@ -14,14 +14,6 @@ $user = Auth::user();
 $activePage = $activePage ?? 'overview';
 $lang = I18n::getLang();
 $dir = I18n::getDir();
-
-// Content Security Policy
-if (!headers_sent()) {
-    header("Content-Security-Policy: default-src 'self' 'unsafe-inline' 'unsafe-eval' https://fonts.googleapis.com https://fonts.gstatic.com data:;");
-    header("X-Content-Type-Options: nosniff");
-    header("X-Frame-Options: SAMEORIGIN");
-    header("X-XSS-Protection: 1; mode=block");
-}
 ?>
 <!DOCTYPE html>
 <html lang="<?= Helpers::e($lang) ?>" dir="<?= Helpers::e($dir) ?>" data-bs-theme="dark">

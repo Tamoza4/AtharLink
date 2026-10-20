@@ -27,12 +27,41 @@ use AtharLink\AuditLogger;
 $action = $_GET['action'] ?? '';
 $page   = $_GET['page'] ?? 'overview';
 
+// Health Check Probe (Liveness & Readiness for Load Balancers and Monitoring)
+if ($action === 'health') {
+    require __DIR__ . '/health.php';
+    exit;
+}
+
 // Language Toggle (Dual-Language AR / EN) - Available everywhere including installer
 if ($action === 'toggle_lang') {
     $current = I18n::getLang();
     $newLang = $current === 'en' ? 'ar' : 'en';
-    setcookie('athar_lang', $newLang, time() + 31536000, '/');
-    $redirect = $_SERVER['HTTP_REFERER'] ?? Helpers::baseUrl();
+
+    $isSecure = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off')
+        || (isset($_SERVER['SERVER_PORT']) && $_SERVER['SERVER_PORT'] == 443)
+        || (!empty($_SERVER['HTTP_X_FORWARDED_PROTO']) && $_SERVER['HTTP_X_FORWARDED_PROTO'] === 'https');
+
+    setcookie('athar_lang', $newLang, [
+        'expires'  => time() + 31536000,
+        'path'     => '/',
+        'domain'   => '',
+        'secure'   => $isSecure,
+        'httponly' => true,
+        'samesite' => 'Lax'
+    ]);
+
+    $redirect = Helpers::baseUrl();
+    if (!empty($_SERVER['HTTP_REFERER'])) {
+        $refHost = parse_url($_SERVER['HTTP_REFERER'], PHP_URL_HOST);
+        $currentHost = $_SERVER['HTTP_HOST'] ?? '';
+        $cleanRefHost = $refHost ? preg_replace('/:\d+$/', '', strtolower($refHost)) : null;
+        $cleanCurrentHost = preg_replace('/:\d+$/', '', strtolower($currentHost));
+        if ($cleanRefHost && $cleanRefHost === $cleanCurrentHost) {
+            $redirect = $_SERVER['HTTP_REFERER'];
+        }
+    }
+
     header('Location: ' . $redirect);
     exit;
 }
@@ -312,9 +341,9 @@ if ($action === 'delete_link' && $_SERVER['REQUEST_METHOD'] === 'POST') {
 }
 
 // Toggle Link State (Pause / Resume)
-if ($action === 'toggle_link') {
-    $token = $_POST['csrf_token'] ?? ($_GET['csrf_token'] ?? '');
-    $id    = (int)($_POST['id'] ?? ($_GET['id'] ?? 0));
+if ($action === 'toggle_link' && $_SERVER['REQUEST_METHOD'] === 'POST') {
+    $token = $_POST['csrf_token'] ?? '';
+    $id    = (int)($_POST['id'] ?? 0);
 
     if (!Helpers::verifyCsrf($token)) {
         $_SESSION['flash_error'] = I18n::t('security_check_failed');
@@ -503,7 +532,13 @@ if ($action === 'save_settings' && $_SERVER['REQUEST_METHOD'] === 'POST') {
 }
 
 // Download SQLite Database Backup
-if ($action === 'download_backup') {
+if ($action === 'download_backup' && $_SERVER['REQUEST_METHOD'] === 'POST') {
+    if (!Helpers::verifyCsrf($_POST['csrf_token'] ?? '')) {
+        $_SESSION['flash_error'] = I18n::t('csrf_invalid');
+        header('Location: ' . Helpers::baseUrl('index.php?page=settings'));
+        exit;
+    }
+
     if (!file_exists(DB_PATH)) {
         $_SESSION['flash_error'] = I18n::t('db_file_not_found');
         header('Location: ' . Helpers::baseUrl('index.php?page=settings'));
@@ -553,7 +588,14 @@ if ($action === 'restore_backup' && $_SERVER['REQUEST_METHOD'] === 'POST') {
                     try {
                         $oldPdo = Database::getConnection();
                         $currentUsers = $oldPdo->query("SELECT * FROM users")->fetchAll(\PDO::FETCH_ASSOC);
+                        $oldPdo->exec("PRAGMA wal_checkpoint(TRUNCATE);");
                     } catch (\Throwable) {}
+
+                    // Safe Pre-Restore Database Snapshot (Protects against accidental corruption or data loss)
+                    if (file_exists(DB_PATH)) {
+                        $preRestoreName = 'backup_pre_restore_' . date('Ymd_His') . '.sqlite';
+                        @copy(DB_PATH, STORAGE_DIR . DIRECTORY_SEPARATOR . $preRestoreName);
+                    }
 
                     // 2. Safe restore copy
                     @copy($tmpPath, DB_PATH);

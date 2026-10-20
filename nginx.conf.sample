@@ -53,7 +53,15 @@ server {
     }
 
     # Block sensitive file extensions anywhere in the application
-    location ~* \.(sqlite|lock|env|log|bak|sql|sh)$ {
+    location ~* \.(sqlite|lock|env|log|bak|sql|sh|zip|tar|gz)$ {
+        deny all;
+        access_log off;
+        log_not_found off;
+        return 403;
+    }
+
+    # Block sensitive documentation and legacy backup files
+    location ~* (Instructions\.txt|CCount_.*\.php)$ {
         deny all;
         access_log off;
         log_not_found off;

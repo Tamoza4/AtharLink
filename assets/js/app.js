@@ -47,22 +47,75 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     });
 
-    // 2. Copy to Clipboard Utility
+    // 2. Universal Copy to Clipboard Utility with HTTP Legacy Fallback
+    function copyTextSafely(text, onSuccess, onFailure) {
+        if (!text) return;
+
+        function fallback() {
+            try {
+                const textArea = document.createElement('textarea');
+                textArea.value = text;
+                textArea.style.position = 'fixed';
+                textArea.style.top = '-9999px';
+                textArea.style.left = '-9999px';
+                textArea.setAttribute('readonly', '');
+                document.body.appendChild(textArea);
+                textArea.focus();
+                textArea.select();
+                const successful = document.execCommand('copy');
+                document.body.removeChild(textArea);
+                if (successful) {
+                    if (typeof onSuccess === 'function') onSuccess();
+                } else {
+                    throw new Error('execCommand returned false');
+                }
+            } catch (err) {
+                if (typeof onFailure === 'function') {
+                    onFailure();
+                } else {
+                    prompt(t('copyManually', 'Copy link manually:'), text);
+                }
+            }
+        }
+
+        if (navigator.clipboard && window.isSecureContext) {
+            navigator.clipboard.writeText(text)
+                .then(() => {
+                    if (typeof onSuccess === 'function') onSuccess();
+                })
+                .catch(() => {
+                    fallback();
+                });
+        } else {
+            fallback();
+        }
+    }
+
+    // Expose globally for other views and modals
+    window.copyTextSafely = copyTextSafely;
+
     document.querySelectorAll('[data-copy-url]').forEach(function (btn) {
         btn.addEventListener('click', function () {
             const url = this.getAttribute('data-copy-url');
             if (!url) return;
 
-            navigator.clipboard.writeText(url).then(() => {
-                const originalHtml = this.innerHTML;
-                this.innerHTML = '<svg class="tamoza-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg> ' + t('copied', 'Copied');
-                this.classList.add('badge-success');
+            const originalHtml = this.innerHTML;
+            const hasText = !!this.querySelector('span');
+            copyTextSafely(url, () => {
+                const checkSvg = '<svg class="tamoza-icon text-success" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>';
+                if (hasText) {
+                    this.innerHTML = checkSvg + ' ' + t('copied', 'Copied');
+                    this.classList.add('badge-success');
+                } else {
+                    this.innerHTML = checkSvg;
+                    this.classList.add('border-success');
+                }
 
                 setTimeout(() => {
                     this.innerHTML = originalHtml;
-                    this.classList.remove('badge-success');
+                    this.classList.remove('badge-success', 'border-success');
                 }, 2000);
-            }).catch(() => {
+            }, () => {
                 prompt(t('copyManually', 'Copy link manually:'), url);
             });
         });

@@ -166,15 +166,10 @@ class LinkManager
         if (!empty($data['remove_password'])) {
             $passwordHash = null;
             $passwordPlain = null;
-        } elseif (isset($data['password'])) {
+        } elseif (isset($data['password']) && trim((string)$data['password']) !== '') {
             $rawPass = trim((string)$data['password']);
-            if ($rawPass === '') {
-                $passwordHash = null; // Removed password protection
-                $passwordPlain = null;
-            } else {
-                $passwordHash = password_hash($rawPass, PASSWORD_BCRYPT);
-                $passwordPlain = Helpers::encryptSensitive($rawPass);
-            }
+            $passwordHash = password_hash($rawPass, PASSWORD_BCRYPT);
+            $passwordPlain = Helpers::encryptSensitive($rawPass);
         }
 
         $authLang = in_array($data['auth_lang'] ?? ($link['auth_lang'] ?? 'auto'), ['auto', 'ar', 'en'], true)

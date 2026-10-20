@@ -21,6 +21,12 @@
 .env
 *.tmp
 *.log
+*.zip
+*.tar.gz
+*.tgz
+CCount*.php
+Instructions.txt
+test.html
 
 # Operating System Files
 .DS_Store

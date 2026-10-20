@@ -14,6 +14,7 @@ use Throwable;
 class Updater
 {
     public const DEFAULT_REPO = 'Tamoza4/AtharLink';
+    public const REPO = self::DEFAULT_REPO;
     private const CACHE_KEY = 'update_check_cache';
     private const CACHE_TTL = 300; // 5 minutes cache (fresh version detection)
 
@@ -290,7 +291,7 @@ class Updater
             }
         } else {
             // Standalone Mode: Fetch official files from repository
-            $repo = self::REPO;
+            $repo = Database::getSetting('github_repo', self::DEFAULT_REPO);
             $rawBase = "https://raw.githubusercontent.com/{$repo}/main/";
 
             // Fetch remote checksums.json to determine changed/missing files
@@ -356,6 +357,15 @@ class Updater
                 }
 
                 if ($content !== null) {
+                    // Verify file integrity against remote checksum if available
+                    if (!empty($remoteChecksums[$fileRel])) {
+                        $downloadHash = hash('sha256', $content);
+                        if ($downloadHash !== $remoteChecksums[$fileRel]) {
+                            $log[] = "Warning: Checksum mismatch for {$fileRel}. File update skipped to prevent corruption.";
+                            continue;
+                        }
+                    }
+
                     $parentDir = dirname($targetPath);
                     if (!is_dir($parentDir)) {
                         @mkdir($parentDir, 0755, true);
@@ -442,6 +452,7 @@ class Updater
         'config/checksums.json',
         'config/config.php',
         'embed.js',
+        'health.php',
         'index.php',
         'LICENSE',
         'nginx.conf.sample',
@@ -785,6 +796,16 @@ class Updater
                 }
 
                 if ($content !== null) {
+                    // Verify file integrity against official manifest checksum if available
+                    $checksums = self::getChecksumsManifest();
+                    if (!empty($checksums[$fileRel])) {
+                        $downloadHash = hash('sha256', $content);
+                        if ($downloadHash !== $checksums[$fileRel]) {
+                            $log[] = "Warning: Checksum mismatch for {$fileRel}. File restore skipped to prevent corruption.";
+                            continue;
+                        }
+                    }
+
                     $parentDir = dirname($targetPath);
                     if (!is_dir($parentDir)) {
                         @mkdir($parentDir, 0755, true);

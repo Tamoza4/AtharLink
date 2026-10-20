@@ -10,7 +10,15 @@
     ServerSignature Off
 
     # Security: Deny access to sensitive files
-    <FilesMatch "\.(sqlite|lock|env|log|md)$">
+    <FilesMatch "\.(sqlite|lock|env|log|md|zip|tar|gz|bak|sql|sh)$">
+        Require all denied
+    </FilesMatch>
+
+    <Files "Instructions.txt">
+        Require all denied
+    </Files>
+
+    <FilesMatch "^CCount_.*\.php$">
         Require all denied
     </FilesMatch>
 

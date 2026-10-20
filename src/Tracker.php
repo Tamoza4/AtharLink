@@ -5,6 +5,8 @@ namespace AtharLink;
 
 use PDO;
 
+require_once __DIR__ . '/RateLimiter.php';
+
 /**
  * High-Throughput Redirection, Tracking, and Safe Streaming Engine
  */
@@ -69,12 +71,12 @@ class Tracker
         // Check password protection
         if (!empty($link['password_hash']) || !empty($link['password_plain'])) {
             $sessionKey = 'athar_unlocked_' . $link['id'];
-            $attemptKey = 'athar_pattempts_' . $link['id'];
-            $lockKey    = 'athar_plock_' . $link['id'];
+            $rateKey    = 'link_pass_' . $link['id'];
+            $clientIp   = Helpers::getClientIp();
 
             if (empty($_SESSION[$sessionKey])) {
-                // Rate limit lockout check (15 minutes after 5 failed attempts)
-                if (!empty($_SESSION[$lockKey]) && $_SESSION[$lockKey] > time()) {
+                // Rate limit lockout check (15 minutes after 5 failed attempts per IP)
+                if (RateLimiter::isLocked($rateKey, 5, 15, $clientIp)) {
                     self::renderPasswordPrompt($link, 'too_many_attempts');
                     return;
                 }
@@ -101,12 +103,10 @@ class Tracker
 
                     if ($isCorrect) {
                         $_SESSION[$sessionKey] = true;
-                        unset($_SESSION[$attemptKey], $_SESSION[$lockKey]);
+                        RateLimiter::clearAttempts($rateKey, $clientIp);
                     } else {
-                        $failed = (int)($_SESSION[$attemptKey] ?? 0) + 1;
-                        $_SESSION[$attemptKey] = $failed;
-                        if ($failed >= 5) {
-                            $_SESSION[$lockKey] = time() + (15 * 60);
+                        RateLimiter::recordAttempt($rateKey, $clientIp);
+                        if (RateLimiter::isLocked($rateKey, 5, 15, $clientIp)) {
                             self::renderPasswordPrompt($link, 'too_many_attempts');
                         } else {
                             self::renderPasswordPrompt($link, 'invalid_password');

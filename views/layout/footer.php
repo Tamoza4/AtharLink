@@ -459,13 +459,20 @@ document.addEventListener('DOMContentLoaded', function () {
         const triggerCopy = (btnEl, iconEl, textEl) => {
             const codeOutput = document.getElementById('embedCodeOutput');
             if (!codeOutput) return;
-            navigator.clipboard.writeText(codeOutput.value).then(() => {
+            const copyFn = window.copyTextSafely || function(t, s, f) {
+                if (navigator.clipboard && window.isSecureContext) {
+                    navigator.clipboard.writeText(t).then(s).catch(f);
+                } else { f(); }
+            };
+            copyFn(codeOutput.value, () => {
                 if (textEl) textEl.textContent = i18nEmbed.copiedText;
                 if (iconEl) iconEl.innerHTML = <?= json_encode(Icon::get('check', '', 14)) ?>;
                 setTimeout(() => {
                     if (textEl) textEl.textContent = i18nEmbed.copyText;
                     if (iconEl) iconEl.innerHTML = <?= json_encode(Icon::get('copy', '', 14)) ?>;
                 }, 2000);
+            }, () => {
+                prompt('Copy:', codeOutput.value);
             });
         };
 
