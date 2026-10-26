@@ -170,7 +170,7 @@ use AtharLink\Icon;
                         <span class="text-secondary small" id="embedPreviewNumberUnit"><?= I18n::t('col_clicks') ?></span>
                     </div>
                     <div id="embedPreviewBadgeWrapper" class="d-none py-1">
-                        <img id="embedPreviewBadgeImg" src="" alt="Badge Preview" style="height: 22px; max-width: 100%;">
+                        <img id="embedPreviewBadgeImg" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg'/%3E" alt="Badge Preview" style="height: 22px; max-width: 100%;">
                     </div>
                 </div>
 
