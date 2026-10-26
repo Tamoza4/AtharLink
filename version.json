@@ -1,7 +1,7 @@
 {
-    "version": "1.0.17",
-    "release_date": "2026-10-21",
-    "name": "AtharLink v1.0.17",
-    "changelog": "Production Readiness & Stability Release: Added health check probe (/health), global graceful exception & 503 degradation handler, 12-factor environment variable support, universal clipboard fallback for HTTP/insecure contexts, icon-only minimalist button UI, emergency recovery key .txt download, and security hardening for SQLite WAL files and audit log exports.",
+    "version": "1.0.18",
+    "release_date": "2026-10-26",
+    "name": "AtharLink v1.0.18",
+    "changelog": "UI Polish & Craft Release: Resolved image placeholder antipattern in embed modal preview with inline SVG data URI, updated administrator profile management, and refined UI asset checksums.",
     "min_php": "8.2"
 }

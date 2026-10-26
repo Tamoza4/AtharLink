@@ -36,7 +36,7 @@ if (!headers_sent() && php_sapi_name() !== 'cli') {
 
 // Application Constants (with 12-Factor Environment Variable support)
 define('APP_NAME', getenv('ATHAR_APP_NAME') ?: 'AtharLink');
-define('APP_VERSION', '1.0.17');
+define('APP_VERSION', '1.0.18');
 define('APP_ROOT', dirname(__DIR__));
 define('STORAGE_DIR', getenv('ATHAR_STORAGE_DIR') ?: (APP_ROOT . DIRECTORY_SEPARATOR . 'storage'));
 define('DB_PATH', getenv('ATHAR_DB_PATH') ?: (STORAGE_DIR . DIRECTORY_SEPARATOR . 'athar_database.sqlite'));
